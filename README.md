@@ -41,7 +41,7 @@ npm install
 node server.js
 ```
 
-4. Open `http://localhost:3000` in your browser.
+4. Open `http://localhost:3589` in your browser.
 
 ## Usage
 
