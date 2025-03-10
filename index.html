@@ -305,6 +305,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Flux Image Generator loaded');
+
+            // Check if we're running on GitHub Pages (no server)
+            const isGitHubPages = window.location.hostname.includes('github.io');
             
             // Image Prompt Data
             let imagePromptData = null;
@@ -824,7 +827,38 @@
             function displayImage(imageUrl) {
                 console.log("Displaying image:", imageUrl);
                 
-                // Show image
+                if (isGitHubPages) {
+                    // On GitHub Pages, we can't use the proxy
+                    elements.previewImage.classList.add('hidden');
+                    elements.generationPlaceholder.classList.add('hidden');
+                    
+                    // Create a button to open image directly
+                    const fallbackButton = document.createElement('div');
+                    fallbackButton.className = 'text-center mt-4';
+                    fallbackButton.innerHTML = `
+                        <p class="mb-2 text-sm text-gray-600">Click below to view your generated image:</p>
+                        <a href="${currentImageUrl}" target="_blank" class="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
+                            Open Generated Image
+                        </a>
+                    `;
+                    
+                    // Remove any existing fallback
+                    const existingFallback = elements.previewContainer.querySelector('.text-center.mt-4');
+                    if (existingFallback) {
+                        elements.previewContainer.removeChild(existingFallback);
+                    }
+                    
+                    elements.previewContainer.appendChild(fallbackButton);
+                    
+                    // Show action buttons
+                    elements.copyParamsBtn.classList.remove('hidden');
+                    elements.downloadBtn.classList.remove('hidden');
+                    elements.copyImageBtn.classList.remove('hidden');
+                    
+                    return;
+                }
+                
+                // Original displayImage logic for when server is present
                 elements.previewImage.src = imageUrl;
                 elements.previewImage.classList.remove('hidden');
                 elements.generationPlaceholder.classList.add('hidden');
