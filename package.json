@@ -1,0 +1,39 @@
+{
+  "name": "flux-image-generator",
+  "version": "1.0.0",
+  "description": "A simple interface for the Black Forest Labs Flux AI image generation API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "node-fetch": "^2.7.0"
+  },
+  "author": {
+    "name": "Tremontaine",
+    "url": "https://github.com/Tremontaine"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tremontaine/flux-ui.git"
+  },
+  "homepage": "https://github.com/Tremontaine/flux-ui",
+  "bugs": {
+    "url": "https://github.com/Tremontaine/flux-ui/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "flux",
+    "ai",
+    "image-generation",
+    "black-forest-labs",
+    "bfl",
+    "ai-art",
+    "ui"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
