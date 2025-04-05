@@ -5,13 +5,14 @@
     top: 0;
     height: 100vh;
     width: 280px;
-    background-color: #1a202c;
-    color: white;
+    background-color: white; /* Changed background */
+    color: #1f2937; /* Changed text color */
+    border-left: 1px solid #e5e7eb; /* Added border */
     transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
     z-index: 40;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1); /* Adjusted shadow */
 }
 
 .gallery-collapsed {
@@ -25,25 +26,27 @@
     transform: translateY(-50%);
     width: 36px;
     height: 36px;
-    background-color: #1a202c;
-    color: white;
-    border: none;
+    background-color: white; /* Changed background */
+    color: #4b5563; /* Changed color */
+    border: 1px solid #e5e7eb; /* Added border */
+    border-right: none; /* Remove right border */
     border-radius: 4px 0 0 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, color 0.2s;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05); /* Adjusted shadow */
 }
 
 .gallery-toggle:hover {
-    background-color: #2d3748;
+    background-color: #f9fafb; /* Changed hover background */
+    color: var(--primary); /* Changed hover color */
 }
 
 .gallery-header {
     padding: 1rem;
-    border-bottom: 1px solid #2d3748;
+    border-bottom: 1px solid #e5e7eb; /* Changed border color */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -57,7 +60,7 @@
 }
 
 .gallery-counter {
-    background-color: #4f46e5;
+    background-color: var(--primary); /* Use primary color */
     color: white;
     border-radius: 9999px;
     padding: 0.125rem 0.375rem;
@@ -75,17 +78,19 @@
 }
 
 .gallery-item {
+    position: relative; /* Needed for absolute positioning of download button */
     transition: transform 0.2s, box-shadow 0.2s;
     aspect-ratio: 1;
     border-radius: 0.375rem;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Adjusted shadow */
+    border: 1px solid #e5e7eb; /* Added subtle border */
 }
 
 .gallery-item:hover {
     transform: scale(1.03);
     z-index: 1;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Adjusted shadow */
 }
 
 .gallery-item img {
@@ -96,25 +101,35 @@
 
 .gallery-footer {
     padding: 0.75rem;
-    border-top: 1px solid #2d3748;
-    background-color: #1a202c;
+    border-top: 1px solid #e5e7eb; /* Changed border color */
+    background-color: #f9fafb; /* Changed background */
 }
 
 .clear-gallery-btn {
     width: 100%;
-    background-color: #ef4444;
+    background-color: #ef4444; /* Keep red for destructive action */
     color: white;
-    padding: 0.5rem;
+    padding: 0.5rem 1rem; /* Adjusted padding */
     border: none;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem; /* Match other elements */
     font-size: 0.875rem;
+    font-weight: 500; /* Added font weight */
     cursor: pointer;
-    transition: background-color 0.2s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.clear-gallery-btn:focus {
+	outline: 2px solid var(--primary-light);
+	outline-offset: 2px;
 }
 
 .clear-gallery-btn:hover {
     background-color: #dc2626;
+}
+
+.clear-gallery-btn:active {
+    transform: scale(0.98);
 }
 
 /* Modal styling improvements */
@@ -123,14 +138,20 @@
 }
 
 .gallery-modal-content {
-    border: 1px solid #374151;
+    border: 1px solid #e5e7eb; /* Changed border color */
 }
 
 /* Empty state */
 .gallery-empty-state {
-    color: #9ca3af;
+    color: #6b7280; /* Changed text color */
     text-align: center;
     padding: 2rem 1rem;
+    display: flex; /* Added for centering */
+    flex-direction: column; /* Stack icon and text */
+    justify-content: center; /* Center vertically */
+    align-items: center; /* Center horizontally */
+    height: 100%; /* Take full height of container */
+    grid-column: 1 / -1; /* Span all grid columns */
 }
 
 .gallery-empty-icon {
@@ -144,12 +165,59 @@
 }
 
 .gallery-content::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #f1f5f9; /* Lighter track */
 }
 
 .gallery-content::-webkit-scrollbar-thumb {
-    background-color: #4b5563;
+    background-color: #cbd5e1; /* Lighter thumb */
     border-radius: 6px;
+}
+
+.gallery-content::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* Darker thumb on hover */
+}
+
+/* Download Button Styles */
+.gallery-item .download-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+    z-index: 2; /* Ensure it's above the image */
+}
+
+.gallery-item:hover .download-btn {
+    opacity: 1;
+}
+
+.gallery-item .download-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.gallery-item .download-btn:focus {
+ outline: 2px solid var(--primary-light);
+ outline-offset: 2px;
+ background-color: rgba(0, 0, 0, 0.7); /* Keep visible on focus */
+}
+
+.gallery-item .download-btn:active {
+ transform: scale(0.95); /* Slightly different scale for small button */
+}
+
+.gallery-item .download-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* Mobile adjustments */

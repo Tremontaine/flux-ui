@@ -190,36 +190,35 @@ window.FluxGallery = {
         
         // Show empty state if no items
         if (this.items.length === 0) {
-            galleryContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-64 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p>No saved images yet</p>
-                    <p class="text-xs mt-1">Generated images will appear here</p>
-                </div>
-            `;
+            // No need to display an empty state message, just leave it blank.
             return;
         }
         
         // Create gallery items
         this.items.forEach((item, index) => {
             const itemElement = document.createElement('div');
-            itemElement.className = 'gallery-item relative group';
+            // Use the class name from CSS for hover effects
+            itemElement.className = 'gallery-item';
             itemElement.innerHTML = `
-                <div class="relative overflow-hidden rounded-md cursor-pointer">
-                    <img src="${item.imageData}" alt="Generated image" class="w-full h-auto object-cover bg-gray-100">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200"></div>
-                </div>
-                <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button class="gallery-delete-btn p-1 bg-red-500 text-white rounded-full shadow-sm" data-id="${item.id}" title="Delete">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="gallery-item-details absolute bottom-0 left-0 right-0 p-2 text-xs bg-black bg-opacity-60 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <p class="truncate">${item.metadata.model || 'Unknown model'}</p>
+                <img src="${item.imageData}" alt="Generated image" class="w-full h-full object-cover bg-gray-100">
+                
+                <!-- Download Button -->
+                <button class="download-btn" data-id="${item.id}" title="Download Image">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                </button>
+
+                <!-- Delete Button (adjusted position slightly) -->
+                <button class="gallery-delete-btn absolute top-2 left-2 p-1 bg-red-500 text-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200" data-id="${item.id}" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                <!-- Details Overlay (optional, can be removed if not needed) -->
+                <div class="gallery-item-details absolute bottom-0 left-0 right-0 p-1 text-xs bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    <p class="truncate text-center">${item.metadata.model || 'Unknown'}</p>
                 </div>
             `;
             
@@ -230,10 +229,21 @@ window.FluxGallery = {
                 this.handleGalleryItemClick(item);
             });
             
+            // Add event listener for image click (open modal)
+            itemElement.querySelector('img').addEventListener('click', () => {
+                this.handleGalleryItemClick(item);
+            });
+
             // Add event listener for delete button
             itemElement.querySelector('.gallery-delete-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevent modal from opening
                 this.removeImage(item.id);
+            });
+
+            // Add event listener for download button
+            itemElement.querySelector('.download-btn').addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent modal from opening
+                this.downloadGalleryImage(item);
             });
         });
     },
