@@ -19,11 +19,7 @@ A simple, clean interface for the BFL Flux image generation API. This web-based 
 
 ## Setup
 
-### Option 1: Use the hosted version
-
-Visit [https://tremontaine.github.io/flux-ui](https://tremontaine.github.io/flux-ui) to use the tool without setting up anything locally.
-
-### Option 2: Run locally
+### Running Locally (Required)
 
 1. Clone this repository:
 ```bash
@@ -43,6 +39,8 @@ node server.js
 
 4. Open `http://localhost:3589` in your browser.
 
+**Note:** The Node.js server is required for the application to work. It acts as a proxy between your browser and the BFL API to avoid CORS issues. The application cannot be run by simply opening the HTML file in a browser.
+
 ## Usage
 
 1. Enter your API key from BFL (get one at https://blackforestlabs.ai if you don't have one)
@@ -55,17 +53,28 @@ node server.js
 
 ## Security Note
 
-Your API key is stored locally in your browser and is never sent to our servers. All API requests are made directly from your browser to the BFL API.
+Your API key is stored locally in your browser and is never sent to our servers. All API requests are made from your browser to your local server, which then forwards them to the BFL API.
 
 ## Deployment Options
 
-### Static Site (Limited Functionality)
+### Full Application Deployment
 
-You can deploy just the HTML file to any static hosting provider (GitHub Pages, Netlify, etc.). However, the image preview functionality won't work due to CORS limitations - users will need to use the "Open Image" button.
+To deploy this application, you need to host both the frontend files (HTML, CSS, JS) and the Node.js server. Here are some options:
 
-### Full Application (Complete Functionality)
+1. **Platform as a Service (PaaS)**: Deploy to Heroku, Render, Railway, etc., which support Node.js applications.
+2. **Virtual Private Server (VPS)**: Deploy to a VPS like DigitalOcean, AWS EC2, etc.
+3. **Serverless**: Adapt the server.js to run as serverless functions on platforms like Vercel, Netlify, or AWS Lambda.
 
-Deploy both the HTML and Node.js server to a provider that supports Node.js (Heroku, Render, Railway, etc.) to preserve the image preview functionality.
+**Important:** Static site hosting services alone (GitHub Pages, etc.) will not work for this application as they cannot run the Node.js server.
+
+## How It Works
+
+The application architecture:
+1. Frontend (HTML/CSS/JavaScript) - The UI for interacting with the API
+2. Node.js server (server.js) - Acts as a proxy between the frontend and the BFL API
+3. BFL API - The actual image generation service
+
+The proxy server is necessary to avoid CORS (Cross-Origin Resource Sharing) issues that would otherwise prevent the browser from directly accessing the BFL API.
 
 ## Contributing
 

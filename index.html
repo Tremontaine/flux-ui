@@ -694,16 +694,16 @@
                 let endpoint;
                 switch (model) {
                     case 'flux-pro-1.1':
-                        endpoint = '/flux-pro-1.1';
+                        endpoint = 'flux-pro-1.1';  // No slash at the beginning
                         break;
                     case 'flux-pro':
-                        endpoint = '/flux-pro';
+                        endpoint = 'flux-pro';
                         break;
                     case 'flux-dev':
-                        endpoint = '/flux-dev';
+                        endpoint = 'flux-dev';
                         break;
                     case 'flux-pro-1.1-ultra':
-                        endpoint = '/flux-pro-1.1-ultra';
+                        endpoint = 'flux-pro-1.1-ultra';
                         break;
                     default:
                         throw new Error('Invalid model selected');
@@ -712,7 +712,7 @@
                 console.log(`Making request to ${apiConfig.baseUrl}${endpoint} with params:`, params);
                 
                 try {
-                    const response = await fetch(`${apiConfig.baseUrl}${endpoint}`, {
+                    const response = await fetch(`/api-proxy/${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -745,7 +745,7 @@
                 
                 const checkResult = async () => {
                     try {
-                        const response = await fetch(`${apiConfig.baseUrl}/get_result?id=${taskId}`, {
+                        const response = await fetch(`/api-proxy/get_result?id=${taskId}`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json',
