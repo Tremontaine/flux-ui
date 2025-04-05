@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const path = require('path');
 const app = express();
 const port = process.env.PORT || 3589;
 
@@ -8,10 +9,10 @@ const port = process.env.PORT || 3589;
 app.use(cors());
 
 // Parse JSON request bodies
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));  // Increased size limit for larger image uploads
 
-// Serve static files from the current directory
-app.use(express.static('.'));
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Proxy endpoint for images
 app.get('/proxy-image', async (req, res) => {
@@ -23,7 +24,10 @@ app.get('/proxy-image', async (req, res) => {
 
     console.log('Proxying image:', imageUrl);
     
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      timeout: 30000  // 30 second timeout
+    });
+    
     if (!response.ok) {
       return res.status(response.status).send('Failed to fetch image');
     }
@@ -33,6 +37,9 @@ app.get('/proxy-image', async (req, res) => {
     if (contentType) {
       res.setHeader('Content-Type', contentType);
     }
+
+    // Set cache headers
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
 
     // Pipe the image data to the response
     response.body.pipe(res);
@@ -61,7 +68,8 @@ app.post('/api-proxy/:endpoint', async (req, res) => {
         'Content-Type': 'application/json',
         'x-key': apiKey
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      timeout: 60000  // 60 second timeout
     });
     
     const data = await response.json();
@@ -93,7 +101,8 @@ app.get('/api-proxy/get_result', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'x-key': apiKey
-      }
+      },
+      timeout: 30000  // 30 second timeout
     });
     
     const data = await response.json();
@@ -102,6 +111,11 @@ app.get('/api-proxy/get_result', async (req, res) => {
     console.error('API proxy error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// For any routes not handled by static or API routes, serve the index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(port, () => {
