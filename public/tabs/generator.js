@@ -642,19 +642,35 @@ const GeneratorTab = {
             },
             // Success callback
             (imageUrl, result) => {
+                console.log("Full result object:", result); // Log the full result for debugging seed location
                 // Store the original URL for reference
-                this.currentImageUrl = imageUrl;
-                
-                // Use our proxy server to bypass CORS
+                this.currentImageUrl = imageUrl; // Store original for potential direct use if needed
+
+                // Update currentParams with actual parameters used, especially the seed
+                if (result.details && result.details.request_params) {
+                     console.log("Updating params with details:", result.details.request_params);
+                     // Merge received params, prioritizing the received seed
+                     this.currentParams = {
+                         ...this.currentParams, // Keep originally sent params as fallback
+                         ...result.details.request_params, // Overwrite with actual params used
+                         seed: result.details.request_params.seed ?? this.currentParams.seed // Prioritize received seed
+                     };
+                }
+                 // Ensure model is stored correctly in currentParams
+                this.currentParams.model = result.details?.model_id || this.elements.modelSelector.value;
+                this.currentParams.timestamp = new Date().toISOString();
+
+
+                // Use our proxy server to bypass CORS for display and gallery saving
                 const proxiedUrl = window.FluxAPI.getProxiedImageUrl(imageUrl);
                 console.log("Proxied Image URL:", proxiedUrl);
-                
+
                 // Display the image using the proxied URL
                 this.displayImage(proxiedUrl);
-                
-                // Save image to gallery if available
+
+                // Automatically save to gallery
                 this.saveToGallery(proxiedUrl);
-                
+
                 this.toggleLoading(false);
                 window.FluxUI.showNotification('Image generated successfully!', 'success');
             },
