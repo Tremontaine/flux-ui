@@ -438,38 +438,35 @@ window.FluxGallery = {
 
     // Handle gallery item click (Modal) - Use item.objectURL
     handleGalleryItemClick: function(item) {
+        // Create the main modal container using the new CSS class
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black bg-opacity-80 gallery-modal'; // Added responsive padding
+        modal.className = 'gallery-modal'; // Uses the CSS defined class
 
-        // Format metadata (unchanged logic)
+        // Format metadata (light theme adjustments)
         let metadataHtml = '';
         if (item.metadata) {
             const { model, prompt, width, height, seed } = item.metadata;
             const date = new Date(item.metadata.timestamp).toLocaleString();
+            // Use lighter background and appropriate text colors
             metadataHtml = `
-                <div class="mt-4 bg-gray-800 p-4 rounded-md text-sm">
-                    <div class="mb-2"><span class="font-bold text-indigo-300">Model:</span> ${model || 'Unknown'}</div>
-                    <div class="mb-2"><span class="font-bold text-indigo-300">Size:</span> ${width || '?'} × ${height || '?'}</div>
-                    <div class="mb-2"><span class="font-bold text-indigo-300">Seed:</span> ${seed || 'Unknown'}</div>
-                    <div class="mb-2"><span class="font-bold text-indigo-300">Date:</span> ${date}</div>
-                    ${prompt ? `<div class="mb-1"><span class="font-bold text-indigo-300">Prompt:</span> <div class="text-xs mt-1 text-gray-300 max-h-32 overflow-y-auto bg-gray-700 p-2 rounded">${prompt}</div></div>` : ''} <!-- Increased max-h for prompt -->
+                <div class="mt-4 bg-gray-100 p-4 rounded-md text-sm border border-gray-200">
+                    <div class="mb-2"><span class="font-semibold text-indigo-600">Model:</span> ${model || 'Unknown'}</div>
+                    <div class="mb-2"><span class="font-semibold text-indigo-600">Size:</span> ${width || '?'} × ${height || '?'}</div>
+                    <div class="mb-2"><span class="font-semibold text-indigo-600">Seed:</span> ${seed || 'Unknown'}</div>
+                    <div class="mb-2"><span class="font-semibold text-indigo-600">Date:</span> ${date}</div>
+                    ${prompt ? `<div class="mb-1"><span class="font-semibold text-indigo-600">Prompt:</span> <div class="text-xs mt-1 text-gray-700 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border border-gray-200">${prompt}</div></div>` : ''}
                 </div>
             `;
         }
 
-        // Modal content (use item.objectURL for the main image)
+        // Build modal content using new structure and classes, with info/buttons at the top
         modal.innerHTML = `
-            <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col gallery-modal-content"> <!-- Adjusted max-w, max-h, overflow-hidden -->
-                <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-                     <h3 class="text-lg font-semibold text-white">Gallery Image</h3>
-                     <button class="modal-close p-1 bg-gray-700 hover:bg-gray-600 text-white rounded-full transition-colors">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                     </button>
+            <div class="gallery-modal-content">
+                <div class="gallery-modal-header">
+                     <button class="gallery-modal-close-btn" title="Close">×</button>
                 </div>
-                <div class="p-5 overflow-y-auto"> <!-- Added inner scrollable container -->
-                    <div class="image-container bg-black rounded-md overflow-hidden flex justify-center items-center mb-4">
-                        <img src="${item.objectURL}" alt="Generated image" class="max-w-full max-h-[60vh] object-contain"> <!-- Adjusted max-h for image -->
-                    </div>
+                <!-- Info and Buttons Section -->
+                <div class="p-4 border-b border-gray-200 overflow-y-auto flex-shrink-0">
                     ${metadataHtml}
                     <div class="flex flex-wrap gap-2 mt-4">
                         <button class="download-btn px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition-colors">Download</button>
@@ -480,23 +477,32 @@ window.FluxGallery = {
                         <button class="use-for-control-btn px-3 py-1.5 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 transition-colors">Use for Control</button>
                     </div>
                 </div>
+                <!-- Image Body Section -->
+                <div class="gallery-modal-body">
+                    <img src="${item.objectURL}" alt="Generated image">
+                </div>
             </div>
         `;
 
         document.body.appendChild(modal);
 
-        // Add event listeners for buttons
-        modal.querySelector('.modal-close').addEventListener('click', () => document.body.removeChild(modal));
+        // Get the actual content element for background click check
+        const modalContent = modal.querySelector('.gallery-modal-content');
+
+        // Add event listeners for buttons using the new structure
+        modal.querySelector('.gallery-modal-close-btn').addEventListener('click', () => document.body.removeChild(modal));
         modal.querySelector('.download-btn').addEventListener('click', () => this.downloadGalleryImage(item));
         modal.querySelector('.copy-params-btn').addEventListener('click', () => this.copyGalleryItemParams(item));
-        modal.querySelector('.copy-image-btn').addEventListener('click', () => this.copyGalleryImageToClipboard(item)); // Uses Blob now
+        modal.querySelector('.copy-image-btn').addEventListener('click', () => this.copyGalleryImageToClipboard(item));
         modal.querySelector('.use-for-inpaint-btn').addEventListener('click', () => { this.useForInpaint(item); document.body.removeChild(modal); });
         modal.querySelector('.use-for-outpaint-btn').addEventListener('click', () => { this.useForOutpaint(item); document.body.removeChild(modal); });
         modal.querySelector('.use-for-control-btn').addEventListener('click', () => { this.useForControl(item); document.body.removeChild(modal); });
 
-        // Close on background click
+        // Close on background click (clicking the modal container but not the content)
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) document.body.removeChild(modal);
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
         });
     },
 
