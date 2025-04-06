@@ -9,6 +9,8 @@ const GeneratorTab = {
     imagePromptData: null,
     currentParams: {},
     currentImageUrl: '',
+    selectedOrientation: 'landscape', // Default orientation
+    selectedDimension: '1024x768', // Default dimension
     
     // DOM Elements
     elements: {},
@@ -30,7 +32,7 @@ const GeneratorTab = {
         // Now that content is created, get all the necessary elements
         this.getElements();
         
-        // Initialize model parameters
+        // Initialize model parameters (which includes populating the initial dimension grid)
         this.updateModelParams();
         
         // Setup event listeners
@@ -46,7 +48,9 @@ const GeneratorTab = {
         
         // Prompt and dimensions
         this.elements.promptInput = document.getElementById('prompt-input');
-        this.elements.dimensionsSelector = document.getElementById('dimensions-selector');
+        this.elements.dimensionsGroup = document.getElementById('dimensions-group');
+        this.elements.orientationButtons = document.getElementById('orientation-buttons');
+        this.elements.dimensionsGrid = document.getElementById('dimensions-grid');
         this.elements.aspectRatioSelector = document.getElementById('aspect-ratio-selector');
         
         // Parameters
@@ -117,6 +121,13 @@ const GeneratorTab = {
         }
     },
     
+    // Define dimensions grouped by orientation
+    dimensionsByOrientation: {
+        square: ['512x512', '1024x1024', '1440x1440'],
+        landscape: ['768x512', '1024x576', '1024x768', '1440x768', '1440x1024'],
+        portrait: ['512x768', '576x1024', '768x1024', '1024x1440', '768x1440']
+    },
+    
     // Create the tab content HTML
     createTabContent: function(container) {
         container.innerHTML = `
@@ -144,25 +155,18 @@ const GeneratorTab = {
                     </div>
                     
                     <!-- Image Dimensions -->
-                    <div class="mb-4 param-group" id="dimensions-group">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
-                        <select id="dimensions-selector" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="512x512">512 × 512</option>
-                            <option value="768x512">768 × 512</option>
-                            <option value="512x768">512 × 768</option>
-                            <option value="1024x576">1024 × 576</option>
-                            <option value="576x1024">576 × 1024</option>
-                            <option value="1024x768" selected>1024 × 768</option>
-                            <option value="768x1024">768 × 1024</option>
-                            <option value="1024x1024">1024 × 1024</option>
-                            <option value="1280x720">1280 × 720</option>
-                            <option value="720x1280">720 × 1280</option>
-                            <option value="1440x768">1440 × 768</option>
-                            <option value="768x1440">768 × 1440</option>
-                            <option value="1440x1024">1440 × 1024</option>
-                            <option value="1024x1440">1024 × 1440</option>
-                            <option value="1440x1440">1440 × 1440</option>
-                        </select>
+                    <div id="dimensions-group" class="mb-4 param-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Dimensions</label>
+                        <!-- Orientation Selection -->
+                        <div id="orientation-buttons" class="flex space-x-2 mb-3">
+                            <button type="button" data-orientation="square" class="orientation-button flex-1 px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Square</button>
+                            <button type="button" data-orientation="landscape" class="orientation-button flex-1 px-3 py-1 border border-indigo-500 bg-indigo-50 text-indigo-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 selected-orientation">Landscape</button> <!-- Default -->
+                            <button type="button" data-orientation="portrait" class="orientation-button flex-1 px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Portrait</button>
+                        </div>
+                        <!-- Dimension Grid (Populated Dynamically) -->
+                        <div id="dimensions-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            <!-- Dimension buttons will be added here by JS -->
+                        </div>
                     </div>
                     
                     <!-- Aspect Ratio (for Ultra model) -->
@@ -353,6 +357,16 @@ const GeneratorTab = {
         // Setup image prompt
         this.elements.imagePromptInput.addEventListener('change', this.handleImagePromptUpload.bind(this));
         
+        // Setup orientation button listener
+        if (this.elements.orientationButtons) {
+            this.elements.orientationButtons.addEventListener('click', this.handleOrientationSelection.bind(this));
+        }
+        
+        // Setup dimension grid listener (delegated)
+        if (this.elements.dimensionsGrid) {
+            this.elements.dimensionsGrid.addEventListener('click', this.handleDimensionSelection.bind(this));
+        }
+        
         // Setup action buttons - Add defensive checks
         if (this.elements.downloadBtn) {
             this.elements.downloadBtn.addEventListener('click', this.openImage.bind(this));
@@ -373,6 +387,46 @@ const GeneratorTab = {
         console.log('Generator Tab: Event listeners set up');
     },
     
+    // Update the dimension grid based on selected orientation
+    updateDimensionGrid: function(orientation) {
+        if (!this.elements.dimensionsGrid || !this.dimensionsByOrientation[orientation]) {
+            console.error("Cannot update dimension grid for orientation:", orientation);
+            return;
+        }
+        
+        this.elements.dimensionsGrid.innerHTML = ''; // Clear existing buttons
+        const dimensions = this.dimensionsByOrientation[orientation];
+        let foundDefault = false;
+        
+        dimensions.forEach(dim => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.dimension = dim;
+            button.textContent = dim;
+            button.className = 'dimension-button border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-2 py-1 rounded-md text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-500';
+            
+            // Select the default dimension or the first one if default isn't in this orientation
+            if (dim === this.selectedDimension) {
+                button.classList.add('selected-dimension', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                button.classList.remove('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+                foundDefault = true;
+            }
+            
+            this.elements.dimensionsGrid.appendChild(button);
+        });
+        
+        // If the previously selected dimension wasn't found (e.g., switching orientation), select the first one
+        if (!foundDefault && this.elements.dimensionsGrid.firstChild) {
+            const firstButton = this.elements.dimensionsGrid.firstChild;
+            firstButton.classList.add('selected-dimension', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+            firstButton.classList.remove('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            this.selectedDimension = firstButton.dataset.dimension; // Update state
+            console.log("Default dimension not found in new orientation, selecting first:", this.selectedDimension);
+        }
+        
+        console.log(`Dimension grid updated for orientation: ${orientation}`);
+    },
+    
     // Update model parameters based on selected model
     updateModelParams: function() {
         if (!this.elements.modelSelector) {
@@ -383,37 +437,31 @@ const GeneratorTab = {
         const model = this.elements.modelSelector.value;
         console.log("Updating parameters for model:", model);
         
-        // Reset all model-specific groups
-        this.elements.dimensionsGroup.classList.remove('hidden');
-        this.elements.aspectRatioGroup.classList.add('hidden');
-        this.elements.imagePromptGroup.classList.remove('hidden');
-        this.elements.rawModeGroup.classList.add('hidden');
-        this.elements.intervalGroup.classList.add('hidden');
-        this.elements.promptUpsamplingGroup.classList.remove('hidden');
-        this.elements.stepsGroup.classList.remove('hidden');
-        this.elements.guidanceGroup.classList.remove('hidden');
+        // Default visibility states
+        let showDimensions = true;
+        let showAspectRatio = false;
+        let showSteps = true;
+        let showGuidance = true;
+        let showRaw = false;
+        let showInterval = false;
         
-        // Show image prompt strength if there's an image and it's Ultra model
-        if (this.imagePromptData && model === 'flux-pro-1.1-ultra') {
-            this.elements.imagePromptStrengthContainer.classList.remove('hidden');
-        } else {
-            this.elements.imagePromptStrengthContainer.classList.add('hidden');
-        }
+        // Show image prompt strength only if there's an image AND it's Ultra model
+        const showImageStrength = this.imagePromptData && model === 'flux-pro-1.1-ultra';
+        this.elements.imagePromptStrengthContainer.classList.toggle('hidden', !showImageStrength);
         
         // Update slider ranges and visibility based on model
         switch (model) {
             case 'flux-pro-1.1-ultra':
-                // Ultra model uses aspect ratio instead of dimensions
-                this.elements.dimensionsGroup.classList.add('hidden');
-                this.elements.aspectRatioGroup.classList.remove('hidden');
-                this.elements.rawModeGroup.classList.remove('hidden');
-                // Ultra doesn't use guidance or steps
-                this.elements.guidanceGroup.classList.add('hidden');
-                this.elements.stepsGroup.classList.add('hidden');
+                showDimensions = false;
+                showAspectRatio = true;
+                showRaw = true;
+                showSteps = false; // Ultra doesn't use steps/guidance
+                showGuidance = false;
                 break;
             
             case 'flux-pro':
                 // Set Pro specific ranges
+                // Set Pro specific ranges/defaults
                 this.elements.guidanceSlider.min = "1.5";
                 this.elements.guidanceSlider.max = "5.0";
                 this.elements.guidanceSlider.value = "2.5";
@@ -422,13 +470,12 @@ const GeneratorTab = {
                 this.elements.stepsSlider.max = "50";
                 this.elements.stepsSlider.value = "40";
                 this.elements.stepsValue.textContent = "40";
-                
-                // Make sure interval for Pro is visible
-                this.elements.intervalGroup.classList.remove('hidden');
+                showInterval = true; // Pro uses interval
                 break;
             
             case 'flux-dev':
                 // Set Dev specific ranges
+                // Set Dev specific ranges/defaults
                 this.elements.guidanceSlider.min = "1.5";
                 this.elements.guidanceSlider.max = "5.0";
                 this.elements.guidanceSlider.value = "3.0";
@@ -441,12 +488,77 @@ const GeneratorTab = {
             
             case 'flux-pro-1.1':
                 // Pro 1.1 doesn't use guidance or steps
-                this.elements.guidanceGroup.classList.add('hidden');
-                this.elements.stepsGroup.classList.add('hidden');
+                showSteps = false;
+                showGuidance = false;
                 break;
         }
         
+        // Apply visibility based on the model logic above
+        this.elements.dimensionsGroup.classList.toggle('hidden', !showDimensions);
+        this.elements.aspectRatioGroup.classList.toggle('hidden', !showAspectRatio);
+        this.elements.stepsGroup.classList.toggle('hidden', !showSteps);
+        this.elements.guidanceGroup.classList.toggle('hidden', !showGuidance);
+        this.elements.rawModeGroup.classList.toggle('hidden', !showRaw);
+        this.elements.intervalGroup.classList.toggle('hidden', !showInterval);
+        
+        // Always show these for all models currently
+        this.elements.imagePromptGroup.classList.remove('hidden');
+        this.elements.promptUpsamplingGroup.classList.remove('hidden');
+        
+        // Update dimension grid if dimensions are visible for this model
+        if (showDimensions) {
+            this.updateDimensionGrid(this.selectedOrientation);
+        }
+        
         console.log("Updated UI for model:", model);
+    },
+    // Handle orientation button selection
+    handleOrientationSelection: function(e) {
+        if (e.target.classList.contains('orientation-button')) {
+            const selectedButton = e.target;
+            const orientation = selectedButton.dataset.orientation;
+            
+            if (orientation === this.selectedOrientation) return; // No change
+            
+            this.selectedOrientation = orientation;
+            console.log("Orientation selected:", orientation);
+            
+            // Update button styles
+            this.elements.orientationButtons.querySelectorAll('.orientation-button').forEach(btn => {
+                btn.classList.remove('selected-orientation', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            });
+            selectedButton.classList.add('selected-orientation', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+            selectedButton.classList.remove('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            
+            // Update the dimension grid
+            this.updateDimensionGrid(orientation);
+        }
+    },
+    
+    // Handle dimension button selection (within the grid)
+    handleDimensionSelection: function(e) {
+        // Use closest to handle clicks inside the button potentially
+        const selectedButton = e.target.closest('.dimension-button');
+        if (selectedButton && this.elements.dimensionsGrid.contains(selectedButton)) {
+            const dimension = selectedButton.dataset.dimension;
+            
+            if (dimension === this.selectedDimension) return; // No change
+            
+            this.selectedDimension = dimension; // Update state
+            
+            // Remove selected style from all buttons in the grid
+            this.elements.dimensionsGrid.querySelectorAll('.dimension-button').forEach(btn => {
+                btn.classList.remove('selected-dimension', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            });
+            
+            // Add selected style to the clicked button
+            selectedButton.classList.add('selected-dimension', 'border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+            selectedButton.classList.remove('border-gray-300', 'bg-white', 'text-gray-700', 'hover:bg-gray-50');
+            
+            console.log("Dimension selected:", dimension);
+        }
     },
     
     // Toggle advanced options visibility
@@ -544,6 +656,24 @@ const GeneratorTab = {
             });
     },
     
+    // Get selected dimension (now stored in state)
+    getSelectedDimension: function() {
+        // Ensure the selected dimension is valid for the current orientation, fallback if needed
+        const currentValidDimensions = this.dimensionsByOrientation[this.selectedOrientation];
+        if (currentValidDimensions && currentValidDimensions.includes(this.selectedDimension)) {
+            return this.selectedDimension;
+        } else if (currentValidDimensions && currentValidDimensions.length > 0) {
+            console.warn(`Selected dimension ${this.selectedDimension} invalid for orientation ${this.selectedOrientation}. Falling back to ${currentValidDimensions[0]}`);
+            this.selectedDimension = currentValidDimensions[0]; // Fallback to first valid
+            // Optionally update UI selection here too
+            this.updateDimensionGrid(this.selectedOrientation);
+            return this.selectedDimension;
+        } else {
+             console.error(`No valid dimensions found for orientation ${this.selectedOrientation}. Falling back to default.`);
+            return '1024x768'; // Absolute fallback
+        }
+    },
+    
     // Build request parameters
     buildRequestParams: function(model) {
         // Common parameters for all models
@@ -591,15 +721,15 @@ const GeneratorTab = {
                 break;
                 
             case 'flux-pro-1.1':
-                // Add dimensions
-                const [width, height] = this.elements.dimensionsSelector.value.split('x').map(Number);
+                // Add dimensions from grid
+                const [width, height] = this.getSelectedDimension().split('x').map(Number);
                 params.width = width;
                 params.height = height;
                 break;
                 
             case 'flux-pro':
-                // Add dimensions
-                const [proWidth, proHeight] = this.elements.dimensionsSelector.value.split('x').map(Number);
+                // Add dimensions from grid
+                const [proWidth, proHeight] = this.getSelectedDimension().split('x').map(Number);
                 params.width = proWidth;
                 params.height = proHeight;
                 
@@ -612,8 +742,8 @@ const GeneratorTab = {
                 break;
                 
             case 'flux-dev':
-                // Add dimensions
-                const [devWidth, devHeight] = this.elements.dimensionsSelector.value.split('x').map(Number);
+                // Add dimensions from grid
+                const [devWidth, devHeight] = this.getSelectedDimension().split('x').map(Number);
                 params.width = devWidth;
                 params.height = devHeight;
                 
