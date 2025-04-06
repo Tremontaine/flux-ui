@@ -8,7 +8,7 @@ const ControlTab = {
     // Tab state
     controlImageData: null, // Base64 data for the control image
     controlImageType: 'canny', // 'canny' or 'depth'
-    // Finetune state removed
+    selectedFinetune: null, // Store selected finetune ID
     currentParams: {},
     currentImageUrl: '',
 
@@ -34,11 +34,16 @@ const ControlTab = {
 
         // Initialize model parameters (sets defaults and UI visibility)
         this.updateControlTypeUI();
-        // Finetune UI update removed
+        this.handleFinetuneSelection(); // Initialize finetune UI state
 
         // Setup event listeners
         this.setupEventListeners();
 
+        // Register this module with the main UI for updates
+        if (window.FluxUI) {
+            window.FluxUI.tabModules.control = this;
+        }
+        
         console.log('Control Tab: Initialization complete');
     },
 
@@ -48,7 +53,11 @@ const ControlTab = {
         this.elements.controlTypeCanny = document.getElementById('control-type-canny');
         this.elements.controlTypeDepth = document.getElementById('control-type-depth');
 
-        // Finetune elements removed
+        // Finetune elements
+        this.elements.finetuneSelector = document.getElementById('control-finetune-selector');
+        this.elements.finetuneStrengthContainer = document.getElementById('control-finetune-strength-container');
+        this.elements.finetuneStrengthSlider = document.getElementById('control-finetune-strength-slider');
+        this.elements.finetuneStrengthValue = document.getElementById('control-finetune-strength-value');
 
         // Prompt
         this.elements.promptInput = document.getElementById('control-prompt-input');
@@ -138,7 +147,21 @@ const ControlTab = {
                         </div>
                     </div>
 
-                    <!-- Finetune Selection UI Removed -->
+                    <!-- Finetune Selection -->
+                    <div class="mb-4">
+                        <label for="control-finetune-selector" class="block text-sm font-medium text-gray-700 mb-1">Finetune Model (Optional)</label>
+                        <select id="control-finetune-selector" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">None</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Finetune Strength (Hidden by default) -->
+                    <div id="control-finetune-strength-container" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Finetune Strength: <span id="control-finetune-strength-value">1.1</span></label>
+                        <input type="range" id="control-finetune-strength-slider" min="0" max="2" step="0.05" value="1.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-xs text-gray-500 mt-1">Controls the influence of the finetuned model (0 = none, 1 = full, >1 = amplified)</p>
+                    </div>
 
                     <!-- Prompt -->
                     <div class="mb-4">
@@ -301,7 +324,8 @@ const ControlTab = {
         this.elements.controlTypeCanny.addEventListener('change', () => this.switchControlType('canny'));
         this.elements.controlTypeDepth.addEventListener('change', () => this.switchControlType('depth'));
 
-        // Finetune selector listener removed
+        // Finetune selector listener
+        this.elements.finetuneSelector.addEventListener('change', this.handleFinetuneSelection.bind(this));
 
         // Advanced toggle
         this.elements.advancedToggle.addEventListener('click', this.toggleAdvancedOptions.bind(this));
@@ -316,7 +340,7 @@ const ControlTab = {
         this.setupSlider(this.elements.stepsSlider, this.elements.stepsValue);
         this.setupSlider(this.elements.guidanceSlider, this.elements.guidanceValue);
         this.setupSlider(this.elements.safetySlider, this.elements.safetyValue);
-        // this.setupSlider(this.elements.finetuneStrengthSlider, this.elements.finetuneStrengthValue); // Removed finetune slider setup
+        this.setupSlider(this.elements.finetuneStrengthSlider, this.elements.finetuneStrengthValue); // Setup finetune slider
         this.setupSlider(this.elements.cannyLowThresholdSlider, this.elements.cannyLowThresholdValue);
         this.setupSlider(this.elements.cannyHighThresholdSlider, this.elements.cannyHighThresholdValue);
 
@@ -333,7 +357,56 @@ const ControlTab = {
         console.log('Control Tab: Event listeners set up');
     },
 
-    // fetchFinetunes function removed as finetune is not implemented
+    // updateFinetuneOptions function (similar to other tabs)
+    updateFinetuneOptions: function(finetunes) {
+        if (!this.elements.finetuneSelector) return;
+        
+        const currentSelection = this.elements.finetuneSelector.value;
+        
+        // Clear existing options (keep "None")
+        while (this.elements.finetuneSelector.options.length > 1) {
+            this.elements.finetuneSelector.remove(1);
+        }
+        
+        // Add new options
+        if (finetunes && finetunes.length > 0) {
+            finetunes.forEach(ft => {
+                const option = document.createElement('option');
+                option.value = ft.finetune_id;
+                option.textContent = ft.finetune_comment || ft.finetune_id;
+                this.elements.finetuneSelector.appendChild(option);
+            });
+        }
+        
+        // Restore selection or reset
+        this.elements.finetuneSelector.value = currentSelection;
+        if (this.elements.finetuneSelector.value !== currentSelection) {
+            this.elements.finetuneSelector.value = "";
+        }
+        
+        // Trigger change handler
+        this.handleFinetuneSelection();
+        
+        console.log("Finetune options updated in Control tab.");
+    },
+    
+    // Handle finetune selection change
+    handleFinetuneSelection: function() {
+        const selectedValue = this.elements.finetuneSelector.value;
+        this.selectedFinetune = selectedValue || null; // Store null if "None" is selected
+        
+        // Show/hide strength slider
+        this.elements.finetuneStrengthContainer.classList.toggle('hidden', !this.selectedFinetune);
+        
+        // Set default strength when a finetune is selected (Canny/Depth use 1.1 default)
+        if (this.selectedFinetune) {
+             const defaultStrength = 1.1;
+             this.elements.finetuneStrengthSlider.value = defaultStrength;
+             this.elements.finetuneStrengthValue.textContent = defaultStrength;
+        }
+        
+        console.log("Control Finetune selected:", this.selectedFinetune);
+    },
 
     // Switch between Canny and Depth control
     switchControlType: function(type) {
@@ -371,7 +444,7 @@ const ControlTab = {
         }
     },
 
-    // updateFinetuneUI function removed as finetune is not implemented
+    // updateFinetuneUI function removed
 
     // Toggle advanced options visibility
     toggleAdvancedOptions: function() {
@@ -460,8 +533,15 @@ const ControlTab = {
         const params = this.buildRequestParams();
         if (!params) return; // Error handled in buildRequestParams
 
-        // Determine endpoint based on control type (finetune removed)
-        const endpoint = this.controlImageType === 'canny' ? 'flux-pro-1.0-canny' : 'flux-pro-1.0-depth';
+        // Determine endpoint based on control type and finetune selection
+        let endpoint;
+        const finetuneId = this.elements.finetuneSelector.value;
+        if (finetuneId) {
+            endpoint = this.controlImageType === 'canny' ? 'flux-pro-1.0-canny-finetuned' : 'flux-pro-1.0-depth-finetuned';
+        } else {
+            endpoint = this.controlImageType === 'canny' ? 'flux-pro-1.0-canny' : 'flux-pro-1.0-depth';
+        }
+        console.log(`Using Control API endpoint: ${endpoint}`);
 
         this.currentParams = params; // Store params for later use (copying, gallery)
         this.toggleLoading(true);
@@ -509,7 +589,12 @@ const ControlTab = {
             params.canny_high_threshold = parseInt(this.elements.cannyHighThresholdSlider.value);
         }
 
-        // Finetune parameters removed
+        // Add finetune parameters if selected
+        const finetuneId = this.elements.finetuneSelector.value;
+        if (finetuneId) {
+            params.finetune_id = finetuneId;
+            params.finetune_strength = parseFloat(this.elements.finetuneStrengthSlider.value);
+        }
 
         console.log("Final parameters:", params);
         return params;
@@ -538,8 +623,15 @@ const ControlTab = {
                          seed: result.details.request_params.seed ?? this.currentParams.seed // Prioritize received seed
                      };
                 }
-                // Ensure model/endpoint is stored correctly in currentParams
+                // Ensure model/endpoint and finetune info is stored correctly in currentParams
                 this.currentParams.model = result.details?.model_id || endpointUsed; // Use endpoint if model_id missing
+                if (result.details?.request_params?.finetune_id) {
+                    this.currentParams.finetune_id = result.details.request_params.finetune_id;
+                    this.currentParams.finetune_strength = result.details.request_params.finetune_strength;
+                } else {
+                    delete this.currentParams.finetune_id;
+                    delete this.currentParams.finetune_strength;
+                }
                 this.currentParams.control_type = this.controlImageType; // Add control type
                 this.currentParams.timestamp = new Date().toISOString();
 
@@ -713,9 +805,14 @@ const ControlTab = {
                 reader.readAsDataURL(blob);
             }))
             .then(dataUrl => {
-                // Prepare metadata, removing large image data
+                // Prepare metadata, removing large image data and adding finetune info if present
                 const metadata = { ...this.currentParams };
                 delete metadata.control_image;
+                // Ensure finetune details from currentParams are included if they exist
+                if (this.currentParams.finetune_id) {
+                   metadata.finetune_id = this.currentParams.finetune_id;
+                   metadata.finetune_strength = this.currentParams.finetune_strength;
+                }
 
                 window.FluxGallery.addImage(dataUrl, metadata);
                 console.log('Image saved to gallery');

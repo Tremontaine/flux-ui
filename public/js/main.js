@@ -17,6 +17,9 @@ const FluxUI = {
     // Store loaded tab modules
     tabModules: {},
     
+    // Store fetched finetunes
+    finetunes: [],
+    
     // Initialize the UI
     init: function() {
         console.log('Initializing Flux Image Generator UI');
@@ -38,9 +41,11 @@ const FluxUI = {
             if (storedKey) {
                 this.apiConfig.apiKey = storedKey;
                 this.elements.apiKeyInput.value = '••••••••••••••••';
+                // If key exists, try fetching finetunes
+                this.fetchAndStoreFinetunes();
             }
         } catch (e) {
-            console.error('Error accessing localStorage:', e);
+            console.error('Error accessing localStorage or fetching initial finetunes:', e);
         }
         
         // Setup event listeners
@@ -92,6 +97,8 @@ const FluxUI = {
                 localStorage.setItem('flux_api_key', apiKey);
                 this.elements.apiKeyInput.value = '••••••••••••••••';
                 this.showNotification('API key saved successfully!', 'success');
+                // Fetch finetunes after saving a new key
+                this.fetchAndStoreFinetunes();
             } else if (apiKey.includes('•')) {
                 // If they try to save the masked value, show a message
                 this.showNotification('Please enter your actual API key', 'warning');
@@ -142,6 +149,39 @@ const FluxUI = {
     // Get API key
     getApiKey: function() {
         return this.apiConfig.apiKey;
+    },
+
+    // Fetch and store user finetunes
+    fetchAndStoreFinetunes: async function() {
+        if (!this.getApiKey()) {
+            console.log('Cannot fetch finetunes without API key.');
+            this.finetunes = []; // Clear existing finetunes if key is removed/invalid
+            // Optionally notify tabs to clear their dropdowns
+            this.notifyTabsOfFinetuneUpdate();
+            return;
+        }
+        
+        try {
+            this.finetunes = await window.FluxAPI.getMyFinetunes();
+            console.log('Stored finetunes:', this.finetunes);
+            // Notify tabs that the finetune list has been updated
+            this.notifyTabsOfFinetuneUpdate();
+        } catch (error) {
+            // Error is logged in FluxAPI.getMyFinetunes
+            this.showNotification('Could not fetch finetunes list.', 'warning');
+            this.finetunes = []; // Ensure it's an empty array on error
+            this.notifyTabsOfFinetuneUpdate(); // Notify tabs to clear/update
+        }
+    },
+
+    // Notify relevant tabs about finetune list updates
+    notifyTabsOfFinetuneUpdate: function() {
+        // Iterate through loaded tab modules and call an update function if it exists
+        Object.values(this.tabModules).forEach(module => {
+            if (typeof module.updateFinetuneOptions === 'function') {
+                module.updateFinetuneOptions(this.finetunes);
+            }
+        });
     }
 };
 

@@ -15,6 +15,9 @@ const GeneratorTab = {
     // DOM Elements
     elements: {},
     
+    // Store finetune state
+    selectedFinetune: null,
+    
     // Initialize the tab
     init: function() {
         console.log('Initializing Generator Tab');
@@ -37,6 +40,11 @@ const GeneratorTab = {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Register this module with the main UI for updates
+        if (window.FluxUI) {
+            window.FluxUI.tabModules.generator = this;
+        }
         
         console.log('Generator Tab: Initialization complete');
     },
@@ -85,6 +93,12 @@ const GeneratorTab = {
         this.elements.rawModeGroup = document.getElementById('raw-mode-group');
         this.elements.intervalGroup = document.getElementById('interval-group');
         this.elements.promptUpsamplingGroup = document.getElementById('prompt-upsampling-group');
+        
+        // Finetune elements
+        this.elements.finetuneSelector = document.getElementById('finetune-selector');
+        this.elements.finetuneStrengthContainer = document.getElementById('finetune-strength-container');
+        this.elements.finetuneStrengthSlider = document.getElementById('finetune-strength-slider');
+        this.elements.finetuneStrengthValue = document.getElementById('finetune-strength-value');
         
         // Advanced options
         this.elements.advancedToggle = document.getElementById('advanced-toggle');
@@ -145,6 +159,22 @@ const GeneratorTab = {
                             <option value="flux-dev">Flux Dev</option>
                             <option value="flux-pro-1.1-ultra">Flux Ultra</option>
                         </select>
+                    </div>
+                    
+                    <!-- Finetune Selection -->
+                    <div class="mb-4">
+                        <label for="finetune-selector" class="block text-sm font-medium text-gray-700 mb-1">Finetune Model (Optional)</label>
+                        <select id="finetune-selector" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">None</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    
+                    <!-- Finetune Strength (Hidden by default) -->
+                    <div id="finetune-strength-container" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Finetune Strength: <span id="finetune-strength-value">1.1</span></label>
+                        <input type="range" id="finetune-strength-slider" min="0" max="2" step="0.05" value="1.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-xs text-gray-500 mt-1">Controls the influence of the finetuned model (0 = none, 1 = full, >1 = amplified)</p>
                     </div>
                     
                     <!-- Prompt -->
@@ -353,10 +383,14 @@ const GeneratorTab = {
         this.setupSlider(this.elements.safetySlider, this.elements.safetyValue);
         this.setupSlider(this.elements.intervalSlider, this.elements.intervalValue);
         this.setupSlider(this.elements.imagePromptStrength, this.elements.imagePromptStrengthValue);
+        this.setupSlider(this.elements.finetuneStrengthSlider, this.elements.finetuneStrengthValue); // Setup finetune slider
         
         // Setup image prompt
         this.elements.imagePromptInput.addEventListener('change', this.handleImagePromptUpload.bind(this));
+        // Setup finetune selector listener
+        this.elements.finetuneSelector.addEventListener('change', this.handleFinetuneSelection.bind(this));
         
+        // Setup orientation button listener
         // Setup orientation button listener
         if (this.elements.orientationButtons) {
             this.elements.orientationButtons.addEventListener('click', this.handleOrientationSelection.bind(this));
@@ -625,8 +659,30 @@ const GeneratorTab = {
         }
         
         // Get model type and prepare parameters
-        const model = this.elements.modelSelector.value;
-        const params = this.buildRequestParams(model);
+        // Get base model and selected finetune
+        const baseModel = this.elements.modelSelector.value;
+        const finetuneId = this.elements.finetuneSelector.value;
+        
+        // Determine the actual API endpoint
+        let apiEndpoint = baseModel;
+        if (finetuneId) {
+            switch (baseModel) {
+                case 'flux-pro': apiEndpoint = 'flux-pro-finetuned'; break;
+                case 'flux-pro-1.1-ultra': apiEndpoint = 'flux-pro-1.1-ultra-finetuned'; break;
+                // Add cases for other finetunable models if they exist (e.g., flux-pro-1.1 if it gets a finetune endpoint)
+                default:
+                    // If the base model doesn't have a specific finetune endpoint, maybe show an error or log a warning
+                    console.warn(`Finetune selected (${finetuneId}) but no specific finetune endpoint known for base model ${baseModel}. Using base endpoint.`);
+                    // Or potentially prevent generation:
+                    // window.FluxUI.showNotification(`Finetuning not currently supported for model ${baseModel}`, 'warning');
+                    // return;
+            }
+        }
+        
+        console.log(`Using API endpoint: ${apiEndpoint}`);
+        
+        // Build parameters, passing the finetune info
+        const params = this.buildRequestParams(baseModel, finetuneId);
         
         if (!params) {
             // buildRequestParams will show error notification if needed
@@ -639,12 +695,13 @@ const GeneratorTab = {
         // Show loading state
         this.toggleLoading(true);
         
-        // Make the API request
-        window.FluxAPI.makeRequest(model, params)
+        // Make the API request using the determined endpoint
+        window.FluxAPI.makeRequest(apiEndpoint, params)
             .then(response => {
                 console.log("API response:", response);
                 if (response.id) {
-                    this.pollForResult(response.id);
+                    // Pass the apiEndpoint used for the request to pollForResult
+                    this.pollForResult(response.id, apiEndpoint);
                 } else {
                     throw new Error('No task ID returned from API');
                 }
@@ -674,8 +731,8 @@ const GeneratorTab = {
         }
     },
     
-    // Build request parameters
-    buildRequestParams: function(model) {
+    // Build request parameters, including finetune info if provided
+    buildRequestParams: function(model, finetuneId) {
         // Common parameters for all models
         const params = {
             safety_tolerance: parseInt(this.elements.safetySlider.value),
@@ -705,6 +762,23 @@ const GeneratorTab = {
             // Add image prompt strength for Ultra model
             if (model === 'flux-pro-1.1-ultra') {
                 params.image_prompt_strength = parseFloat(this.elements.imagePromptStrength.value);
+            }
+        }
+        
+        // Add finetune parameters if a finetune is selected
+        if (finetuneId) {
+            params.finetune_id = finetuneId;
+            params.finetune_strength = parseFloat(this.elements.finetuneStrengthSlider.value);
+            
+            // Adjust default strength based on model if needed (example)
+            if (model === 'flux-pro-1.1-ultra' && params.finetune_strength === 1.1) { // Default for non-ultra was 1.1
+                 params.finetune_strength = 1.2; // Default for ultra finetune is 1.2
+                 this.elements.finetuneStrengthSlider.value = 1.2; // Update UI slider too
+                 this.elements.finetuneStrengthValue.textContent = '1.2';
+            } else if (model === 'flux-pro' && params.finetune_strength === 1.2) { // Default for ultra was 1.2
+                 params.finetune_strength = 1.1; // Default for pro finetune is 1.1
+                 this.elements.finetuneStrengthSlider.value = 1.1; // Update UI slider too
+                 this.elements.finetuneStrengthValue.textContent = '1.1';
             }
         }
         
@@ -759,8 +833,8 @@ const GeneratorTab = {
         return params;
     },
     
-    // Poll for task result
-    pollForResult: function(taskId) {
+    // Poll for task result (now accepts apiEndpoint used)
+    pollForResult: function(taskId, apiEndpoint) {
         this.elements.loadingText.textContent = 'Generating your image...';
         console.log(`Polling for result: ${taskId}`);
         
@@ -786,8 +860,17 @@ const GeneratorTab = {
                          seed: result.details.request_params.seed ?? this.currentParams.seed // Prioritize received seed
                      };
                 }
-                 // Ensure model is stored correctly in currentParams
-                this.currentParams.model = result.details?.model_id || this.elements.modelSelector.value;
+                 // Ensure model and finetune info is stored correctly in currentParams
+                 // Use the passed apiEndpoint parameter as fallback
+                this.currentParams.model = result.details?.model_id || apiEndpoint;
+                if (result.details?.request_params?.finetune_id) {
+                    this.currentParams.finetune_id = result.details.request_params.finetune_id;
+                    this.currentParams.finetune_strength = result.details.request_params.finetune_strength;
+                } else {
+                     // Clear finetune params if not returned in details
+                     delete this.currentParams.finetune_id;
+                     delete this.currentParams.finetune_strength;
+                }
                 this.currentParams.timestamp = new Date().toISOString();
 
 
@@ -965,10 +1048,16 @@ const GeneratorTab = {
             return;
         }
         
-        // Add the model to the parameters
+        // Add the model and potentially finetune info to the parameters
+        const paramsToCopy = { ...this.currentParams };
+        // Ensure 'model' reflects the actual endpoint used if available in currentParams, else fallback
+        paramsToCopy.model = this.currentParams.model || this.elements.modelSelector.value;
+        
+        // Remove potentially sensitive or internal details before copying if needed
+        // delete paramsToCopy.someInternalDetail;
+        
         const paramsWithModel = {
-            model: this.elements.modelSelector.value,
-            ...this.currentParams
+            ...paramsToCopy
         };
         
         // Format params as JSON string with indentation
@@ -1006,14 +1095,23 @@ const GeneratorTab = {
             .then(dataUrl => {
                 // Get important parameters for metadata
                 const metadata = {
-                    model: this.elements.modelSelector.value,
+                    // Use the actual model endpoint used from currentParams if available
+                    model: this.currentParams.model || this.elements.modelSelector.value,
                     prompt: this.elements.promptInput.value,
-                    seed: this.elements.seedInput.value ? parseInt(this.elements.seedInput.value) : null,
+                    // Use the seed from currentParams (which should have the actual used seed)
+                    seed: this.currentParams.seed,
                     width: this.currentParams.width,
                     height: this.currentParams.height,
+                    // Add finetune info if it was used
+                    ...(this.currentParams.finetune_id && { finetune_id: this.currentParams.finetune_id }),
+                    ...(this.currentParams.finetune_strength && { finetune_strength: this.currentParams.finetune_strength }),
                     // Add other relevant parameters from currentParams
-                    ...this.currentParams
+                    ...this.currentParams // Spread the rest, potentially overwriting some if needed
                 };
+                // Clean up metadata object - remove redundant 'model' if it's already there from spread
+                if (metadata.model === this.currentParams.model) {
+                   // It's already correctly set
+                }
                 
                 // Add to gallery
                 window.FluxGallery.addImage(dataUrl, metadata);
@@ -1021,8 +1119,71 @@ const GeneratorTab = {
             })
             .catch(error => {
                 console.error('Error saving to gallery:', error);
-                window.FluxUI.showNotification('Failed to save image to gallery: ' + error.message, 'error'); // Add user notification
-            });
+                window.FluxUI.showNotification('Failed to save image to gallery: ' + error.message, 'error');
+        });
+},
+
+// Handle finetune selection change
+handleFinetuneSelection: function() {
+    const selectedValue = this.elements.finetuneSelector.value;
+    this.selectedFinetune = selectedValue || null; // Store null if "None" is selected
+    
+    // Show/hide strength slider
+    this.elements.finetuneStrengthContainer.classList.toggle('hidden', !this.selectedFinetune);
+    
+    // Potentially adjust default strength based on model when finetune is selected
+    if (this.selectedFinetune) {
+         const model = this.elements.modelSelector.value;
+         let defaultStrength = 1.1; // Default for Pro
+         if (model === 'flux-pro-1.1-ultra') {
+             defaultStrength = 1.2; // Default for Ultra
+         }
+         this.elements.finetuneStrengthSlider.value = defaultStrength;
+         this.elements.finetuneStrengthValue.textContent = defaultStrength;
+    }
+    
+    console.log("Finetune selected:", this.selectedFinetune);
+},
+
+// Update finetune options in the dropdown
+updateFinetuneOptions: function(finetunes) {
+    if (!this.elements.finetuneSelector) return;
+    
+    // Remember the currently selected value
+    const currentSelection = this.elements.finetuneSelector.value;
+    
+    // Clear existing options (keep "None")
+    while (this.elements.finetuneSelector.options.length > 1) {
+        this.elements.finetuneSelector.remove(1);
+    }
+    
+    // Add new options
+    if (finetunes && finetunes.length > 0) {
+        // Sort finetunes alphabetically by comment/ID for consistency
+        finetunes.sort((a, b) => (a.finetune_comment || a.finetune_id).localeCompare(b.finetune_comment || b.finetune_id));
+            
+        finetunes.forEach(ft => {
+            const option = document.createElement('option');
+            option.value = ft.finetune_id;
+            // Display comment/ID and type (capitalize type)
+            const type = ft.finetune_type ? `(${ft.finetune_type.charAt(0).toUpperCase() + ft.finetune_type.slice(1)})` : '(Unknown Type)';
+            option.textContent = `${ft.finetune_comment || ft.finetune_id} ${type}`;
+            this.elements.finetuneSelector.appendChild(option);
+        });
+    }
+    
+    // Try to restore previous selection
+    this.elements.finetuneSelector.value = currentSelection;
+    
+    // If the previous selection is no longer valid, reset to "None"
+    if (this.elements.finetuneSelector.value !== currentSelection) {
+        this.elements.finetuneSelector.value = "";
+    }
+    
+    // Trigger change handler to update UI (e.g., hide/show strength)
+    this.handleFinetuneSelection();
+    
+    console.log("Finetune options updated in Generator tab.");
     }
 };
 
