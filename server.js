@@ -132,6 +132,47 @@ app.get('/api-proxy/get_result', requireApiKey, async (req, res) => { // Use mid
   }
 });
 
+// Proxy endpoint for other API GET requests (e.g., my_finetunes, finetune_details) - Apply middleware
+app.get('/api-proxy/:endpoint', requireApiKey, async (req, res) => {
+  try {
+    const endpoint = req.params.endpoint;
+    const apiKey = req.apiKey; // Get key from middleware
+    const queryParams = req.query; // Get query parameters from the original request
+
+    console.log(`Proxying GET request to ${endpoint} with query:`, queryParams);
+
+    // Construct the target URL with query parameters
+    const targetUrl = new URL(`${API_BASE_URL}/${endpoint}`);
+    Object.keys(queryParams).forEach(key => targetUrl.searchParams.append(key, queryParams[key]));
+
+    const response = await fetch(targetUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json', // Still good practice to send
+        'x-key': apiKey
+      },
+      timeout: 30000  // 30 second timeout
+    });
+
+    // Try to parse JSON, but handle potential non-JSON responses gracefully if needed
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+    } else {
+        data = await response.text(); // Get text if not JSON
+        console.warn(`Received non-JSON response from ${endpoint}:`, data);
+        // If expecting JSON, might want to throw an error or handle differently
+    }
+
+    res.status(response.status).json(data); // Send back status and data
+
+  } catch (error) {
+    console.error('API GET proxy error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // For any routes not handled by static or API routes, serve the index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

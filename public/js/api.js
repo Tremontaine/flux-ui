@@ -6,24 +6,38 @@
 // Global API functions
 window.FluxAPI = {
     // Make an API request to a Flux endpoint
-    makeRequest: async function(endpoint, params) {
+    makeRequest: async function(endpoint, params, method = 'POST') { // Added method parameter
         const apiKey = window.FluxUI.getApiKey();
         
         if (!apiKey) {
             throw new Error('API key is required');
         }
         
-        console.log(`Making request to ${endpoint} with params:`, params);
+        console.log(`Making ${method} request to ${endpoint} with params:`, params); // Log method
         
         try {
-            const response = await fetch(`/api-proxy/${endpoint}`, {
-                method: 'POST',
+            const fetchOptions = {
+                method: method.toUpperCase(), // Use the provided method
                 headers: {
                     'Content-Type': 'application/json',
                     'x-key': apiKey
-                },
-                body: JSON.stringify(params)
-            });
+                }
+            };
+
+            // Only add body for methods that typically have one
+            if (method.toUpperCase() !== 'GET' && method.toUpperCase() !== 'HEAD' && params) {
+                fetchOptions.body = JSON.stringify(params);
+            }
+
+            // Construct URL - handle GET params differently if needed (though proxy might handle it)
+            let url = `/api-proxy/${endpoint}`;
+            // Example if GET params needed direct handling (currently proxy likely handles this):
+            // if (method.toUpperCase() === 'GET' && params) {
+            //     const queryParams = new URLSearchParams(params).toString();
+            //     url += `?${queryParams}`;
+            // }
+
+            const response = await fetch(url, fetchOptions);
             
             if (!response.ok) {
                 let errorText = `API error (${response.status})`;

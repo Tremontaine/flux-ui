@@ -472,9 +472,9 @@ window.FluxGallery = {
                         <button class="download-btn px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition-colors">Download</button>
                         <button class="copy-params-btn px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">Copy Parameters</button>
                         <button class="copy-image-btn px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors">Copy to Clipboard</button>
-                        <button class="use-for-inpaint-btn px-3 py-1.5 bg-amber-600 text-white rounded-md text-sm hover:bg-amber-700 transition-colors">Use for Inpaint</button>
-                        <button class="use-for-outpaint-btn px-3 py-1.5 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 transition-colors">Use for Outpaint</button>
-                        <button class="use-for-control-btn px-3 py-1.5 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 transition-colors">Use for Control</button>
+                        <button class="use-for-inpaint-btn px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors">Use for Inpaint</button>
+                        <button class="use-for-outpaint-btn px-3 py-1.5 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-600 transition-colors">Use for Outpaint</button>
+                        <button class="use-for-control-btn px-3 py-1.5 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition-colors">Use for Control</button>
                     </div>
                 </div>
                 <!-- Image Body Section -->
