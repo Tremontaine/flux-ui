@@ -35,6 +35,12 @@ const InpaintTab = {
         this.createTabContent();
         this.getElements(); // Get elements after creating content
         this.setupEventListeners();
+
+        // Listen for finetune list updates from the FinetuneTab
+        document.addEventListener('finetunesListUpdated', (event) => {
+            console.log("Inpaint Tab received finetunesListUpdated event:", event.detail);
+            this.updateFinetuneOptions(event.detail);
+        });
         
         // Register this module with the main UI for updates
         if (window.FluxUI) {
@@ -805,37 +811,50 @@ const InpaintTab = {
         console.log("Inpaint Finetune selected:", this.selectedFinetune);
     },
     
-    // Update finetune options in the dropdown
-    updateFinetuneOptions: function(finetunes) {
-        if (!this.elements.finetuneSelector) return;
-        
+    // Update finetune options in the dropdown using the detailed list
+    updateFinetuneOptions: function(detailedFinetunesList) {
+        if (!this.elements.finetuneSelector) {
+            console.warn("Inpaint Tab: Finetune selector element not found.");
+            return;
+        }
+
+        // Remember the currently selected value
         const currentSelection = this.elements.finetuneSelector.value;
-        
+
         // Clear existing options (keep "None")
         while (this.elements.finetuneSelector.options.length > 1) {
             this.elements.finetuneSelector.remove(1);
         }
-        
-        // Add new options
-        if (finetunes && finetunes.length > 0) {
-            finetunes.forEach(ft => {
+
+        // Add new options from the detailed list
+        if (detailedFinetunesList && detailedFinetunesList.length > 0) {
+            // The list should already be sorted by comment in FinetuneTab
+            detailedFinetunesList.forEach(ft => {
                 const option = document.createElement('option');
-                option.value = ft.finetune_id;
-                option.textContent = ft.finetune_comment || ft.finetune_id;
+                option.value = ft.id; // Use the ID as the value
+                option.textContent = ft.comment; // Display the comment (or ID fallback)
+                option.title = `ID: ${ft.id}`; // Add title attribute for full ID tooltip
+                // Optionally add type info if available in ft.details
+                // const type = ft.details?.finetune_details?.finetune_type;
+                // if (type) {
+                //     option.textContent += ` (${type.charAt(0).toUpperCase() + type.slice(1)})`;
+                // }
                 this.elements.finetuneSelector.appendChild(option);
             });
         }
-        
-        // Restore selection or reset
+
+        // Try to restore previous selection
         this.elements.finetuneSelector.value = currentSelection;
+
+        // If the previous selection is no longer valid (e.g., finetune deleted), reset to "None"
         if (this.elements.finetuneSelector.value !== currentSelection) {
             this.elements.finetuneSelector.value = "";
         }
-        
-        // Trigger change handler
+
+        // Trigger change handler to update UI (e.g., hide/show strength slider)
         this.handleFinetuneSelection();
-        
-        console.log("Finetune options updated in Inpaint tab.");
+
+        console.log("Finetune options updated in Inpaint tab based on detailed list.");
     }
 };
 

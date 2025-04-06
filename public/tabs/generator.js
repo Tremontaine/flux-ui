@@ -40,6 +40,12 @@ const GeneratorTab = {
         
         // Setup event listeners
         this.setupEventListeners();
+
+        // Listen for finetune list updates from the FinetuneTab
+        document.addEventListener('finetunesListUpdated', (event) => {
+            console.log("Generator Tab received finetunesListUpdated event:", event.detail);
+            this.updateFinetuneOptions(event.detail);
+        });
         
         // Register this module with the main UI for updates
         if (window.FluxUI) {
@@ -1145,46 +1151,52 @@ handleFinetuneSelection: function() {
     console.log("Finetune selected:", this.selectedFinetune);
 },
 
-// Update finetune options in the dropdown
-updateFinetuneOptions: function(finetunes) {
-    if (!this.elements.finetuneSelector) return;
-    
+// Update finetune options in the dropdown using the detailed list
+updateFinetuneOptions: function(detailedFinetunesList) {
+    if (!this.elements.finetuneSelector) {
+        console.warn("Generator Tab: Finetune selector element not found.");
+        return;
+    }
+
     // Remember the currently selected value
     const currentSelection = this.elements.finetuneSelector.value;
-    
+
     // Clear existing options (keep "None")
     while (this.elements.finetuneSelector.options.length > 1) {
         this.elements.finetuneSelector.remove(1);
     }
-    
-    // Add new options
-    if (finetunes && finetunes.length > 0) {
-        // Sort finetunes alphabetically by comment/ID for consistency
-        finetunes.sort((a, b) => (a.finetune_comment || a.finetune_id).localeCompare(b.finetune_comment || b.finetune_id));
-            
-        finetunes.forEach(ft => {
+
+    // Add new options from the detailed list
+    if (detailedFinetunesList && detailedFinetunesList.length > 0) {
+        // The list should already be sorted by comment in FinetuneTab
+        detailedFinetunesList.forEach(ft => {
             const option = document.createElement('option');
-            option.value = ft.finetune_id;
-            // Display comment/ID and type (capitalize type)
-            const type = ft.finetune_type ? `(${ft.finetune_type.charAt(0).toUpperCase() + ft.finetune_type.slice(1)})` : '(Unknown Type)';
-            option.textContent = `${ft.finetune_comment || ft.finetune_id} ${type}`;
+            option.value = ft.id; // Use the ID as the value
+            option.textContent = ft.comment; // Display the comment (or ID fallback)
+            // Add title attribute for full ID tooltip if needed
+            option.title = `ID: ${ft.id}`;
+            // Optionally add type info if available in ft.details
+            // const type = ft.details?.finetune_details?.finetune_type;
+            // if (type) {
+            //     option.textContent += ` (${type.charAt(0).toUpperCase() + type.slice(1)})`;
+            // }
             this.elements.finetuneSelector.appendChild(option);
         });
     }
-    
+
     // Try to restore previous selection
     this.elements.finetuneSelector.value = currentSelection;
-    
-    // If the previous selection is no longer valid, reset to "None"
+
+    // If the previous selection is no longer valid (e.g., finetune deleted), reset to "None"
     if (this.elements.finetuneSelector.value !== currentSelection) {
         this.elements.finetuneSelector.value = "";
     }
-    
-    // Trigger change handler to update UI (e.g., hide/show strength)
+
+    // Trigger change handler to update UI (e.g., hide/show strength slider)
     this.handleFinetuneSelection();
-    
-    console.log("Finetune options updated in Generator tab.");
-    }
+
+    console.log("Finetune options updated in Generator tab based on detailed list.");
+}
 };
 
 // Initialize the Generator tab

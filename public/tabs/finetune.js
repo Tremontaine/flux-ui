@@ -7,7 +7,8 @@
 const FinetuneTab = {
     // Tab state
     finetuneFileData: null, // Base64 data for the finetune zip file
-    finetunesList: [], // Array to store user's finetunes
+    finetunesList: [], // Array to store user's finetune IDs (kept for potential compatibility)
+    detailedFinetunesList: [], // Array to store { id: '...', comment: '...', details: {...} }
     selectedFinetuneDetails: null, // Details of the currently viewed finetune
     currentParams: {}, // Parameters used for the last finetune submission
 
@@ -302,11 +303,12 @@ const FinetuneTab = {
         reader.readAsDataURL(file);
     },
 
-    // Fetch the list of user's finetunes
+    // Fetch the list of user's finetunes and their details
     fetchMyFinetunes: async function() {
         console.log("Fetching user's finetunes...");
         this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">Loading finetunes...</p>';
         this.elements.finetuneDetailsContainer.classList.add('hidden'); // Hide details while loading list
+        this.detailedFinetunesList = []; // Clear previous detailed list
 
         if (!window.FluxUI.getApiKey()) {
             this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-red-500">API Key not set.</p>';
@@ -314,33 +316,92 @@ const FinetuneTab = {
         }
 
         try {
-            const response = await FluxAPI.makeRequest('my_finetunes', null, 'GET'); // Specify GET method, no body
-            console.log("Finetunes list response:", response);
+            // 1. Fetch the list of IDs
+            const listResponse = await FluxAPI.makeRequest('my_finetunes', null, 'GET');
+            console.log("Finetunes list response:", listResponse);
 
-            if (response && response.finetunes) {
-                this.finetunesList = response.finetunes;
-                this.renderFinetunesList();
-            } else {
+            if (!listResponse || !listResponse.finetunes || !Array.isArray(listResponse.finetunes)) {
                 this.finetunesList = [];
-                this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">No finetunes found.</p>';
+                this.detailedFinetunesList = [];
+                this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">No finetunes found or invalid response format.</p>';
+                document.dispatchEvent(new CustomEvent('finetunesListUpdated', { detail: [] })); // Notify empty list
+                return;
             }
+
+            this.finetunesList = listResponse.finetunes; // Keep the raw ID list
+
+            if (this.finetunesList.length === 0) {
+                 this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">No finetunes found.</p>';
+                 document.dispatchEvent(new CustomEvent('finetunesListUpdated', { detail: [] })); // Notify empty list
+                 return;
+            }
+
+            // 2. Fetch details for each finetune ID concurrently
+            this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">Loading finetune details (0/' + this.finetunesList.length + ')...</p>';
+            let fetchedCount = 0;
+
+            const detailPromises = this.finetunesList.map(id =>
+                this.fetchFinetuneDetails(id, false) // Pass false to prevent UI update inside the loop
+                    .then(details => {
+                        fetchedCount++;
+                        this.elements.myFinetunesList.innerHTML = `<p class="text-sm text-gray-500">Loading finetune details (${fetchedCount}/${this.finetunesList.length})...</p>`;
+                        return { id: id, details: details };
+                    })
+                    .catch(error => {
+                        fetchedCount++;
+                        this.elements.myFinetunesList.innerHTML = `<p class="text-sm text-gray-500">Loading finetune details (${fetchedCount}/${this.finetunesList.length})...</p>`;
+                        console.warn(`Could not fetch details for ${id}:`, error);
+                        return { id: id, details: null }; // Handle fetch error for individual finetune
+                    })
+            );
+
+            const results = await Promise.all(detailPromises);
+
+            // 3. Process results and store in detailedFinetunesList
+            this.detailedFinetunesList = results.map(result => {
+                // Extract comment from details, fallback to ID
+                // Look inside the nested 'finetune_details' object if the API returns it that way
+                const commentSource = result.details?.finetune_details || result.details;
+                const comment = commentSource?.finetune_comment || result.id;
+                return {
+                    id: result.id,
+                    comment: comment,
+                    details: result.details // Store full details object
+                };
+            });
+
+            // 4. Sort by comment (case-insensitive)
+            this.detailedFinetunesList.sort((a, b) => a.comment.toLowerCase().localeCompare(b.comment.toLowerCase()));
+
+            // 5. Render the final list
+            this.renderFinetunesList();
+
+            // 6. Notify other components that the list is ready
+            console.log("Dispatching finetunesListUpdated event with:", this.detailedFinetunesList);
+            document.dispatchEvent(new CustomEvent('finetunesListUpdated', { detail: this.detailedFinetunesList }));
+
+
         } catch (error) {
-            console.error('Error fetching finetunes:', error);
+            console.error('Error fetching finetunes list or details:', error);
             this.elements.myFinetunesList.innerHTML = `<p class="text-sm text-red-500">Error loading finetunes: ${error.message}</p>`;
             FluxUI.showNotification(`Failed to fetch finetunes: ${error.message}`, 'error');
+            this.finetunesList = [];
+            this.detailedFinetunesList = [];
+            document.dispatchEvent(new CustomEvent('finetunesListUpdated', { detail: [] })); // Notify empty list on error
         }
     },
 
-    // Render the list of finetunes
+    // Render the list of finetunes using the detailed list
     renderFinetunesList: function() {
-        if (this.finetunesList.length === 0) {
-            this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">No finetunes found.</p>';
+        if (this.detailedFinetunesList.length === 0) {
+            // Keep the message set by fetchMyFinetunes (e.g., "No finetunes found.")
+            // this.elements.myFinetunesList.innerHTML = '<p class="text-sm text-gray-500">No finetunes found.</p>';
             return;
         }
 
-        this.elements.myFinetunesList.innerHTML = this.finetunesList.map(ft => `
-            <div class="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer group" data-finetune-id="${ft.finetune_id}">
-                <span class="text-sm truncate" title="${ft.finetune_id}">${ft.finetune_id}</span>
+        this.elements.myFinetunesList.innerHTML = this.detailedFinetunesList.map(ft => `
+            <div class="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer group" data-finetune-id="${ft.id}">
+                <span class="text-sm truncate" title="${ft.comment} (ID: ${ft.id})">${ft.comment}</span>
                 <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                      <button class="view-details-btn p-0.5 text-blue-500 hover:text-blue-700" title="View Details">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -381,37 +442,57 @@ const FinetuneTab = {
     },
 
     // Fetch details for a specific finetune
-    fetchFinetuneDetails: async function(finetuneId) {
-        console.log(`Fetching details for finetune: ${finetuneId}`);
-        this.elements.finetuneDetailsPlaceholder.textContent = 'Loading details...';
-        this.elements.finetuneDetailsPlaceholder.classList.remove('hidden');
-        this.elements.finetuneDetailsContent.classList.add('hidden');
-        this.elements.finetuneDetailsContainer.classList.remove('hidden'); // Ensure container is visible
+    // updateUI flag controls whether this call directly updates the detail view elements
+    fetchFinetuneDetails: async function(finetuneId, updateUI = true) {
+        if (updateUI) {
+            console.log(`Fetching and displaying details for finetune: ${finetuneId}`);
+            this.elements.finetuneDetailsPlaceholder.textContent = 'Loading details...';
+            this.elements.finetuneDetailsPlaceholder.classList.remove('hidden');
+            this.elements.finetuneDetailsContent.classList.add('hidden');
+            this.elements.finetuneDetailsContainer.classList.remove('hidden'); // Ensure container is visible
+        } else {
+            // console.log(`Fetching details for finetune (no UI update): ${finetuneId}`); // Less verbose logging
+        }
+
+        if (!finetuneId) {
+             console.error("fetchFinetuneDetails called with undefined finetuneId");
+             if (updateUI) this.elements.finetuneDetailsPlaceholder.textContent = 'Invalid Finetune ID provided.';
+             throw new Error("Invalid Finetune ID provided.");
+        }
+
 
         if (!window.FluxUI.getApiKey()) {
-            this.elements.finetuneDetailsPlaceholder.textContent = 'API Key not set.';
-            return;
+             if (updateUI) this.elements.finetuneDetailsPlaceholder.textContent = 'API Key not set.';
+            throw new Error('API Key not set.'); // Throw error for Promise.all
         }
 
         try {
-            // Note: API uses query parameter, not path parameter
-            // Pass finetune_id as query param for GET, handled by updated makeRequest/proxy
             const response = await FluxAPI.makeRequest(`finetune_details?finetune_id=${finetuneId}`, null, 'GET');
-            console.log("Finetune details response:", response);
+            // console.log(`Finetune details response for ${finetuneId}:`, response); // Less verbose
 
             if (response && response.finetune_details) {
-                this.selectedFinetuneDetails = response.finetune_details;
-                this.elements.finetuneDetailsContent.textContent = JSON.stringify(this.selectedFinetuneDetails, null, 2);
-                this.elements.finetuneDetailsPlaceholder.classList.add('hidden');
-                this.elements.finetuneDetailsContent.classList.remove('hidden');
+                 if (updateUI) {
+                    this.selectedFinetuneDetails = response.finetune_details;
+                    this.elements.finetuneDetailsContent.textContent = JSON.stringify(this.selectedFinetuneDetails, null, 2);
+                    this.elements.finetuneDetailsPlaceholder.classList.add('hidden');
+                    this.elements.finetuneDetailsContent.classList.remove('hidden');
+                }
+                // Return the inner finetune_details object directly for consistency
+                return response.finetune_details;
             } else {
-                this.elements.finetuneDetailsPlaceholder.textContent = 'Could not load details.';
-                FluxUI.showNotification(`Could not load details for ${finetuneId}.`, 'warning');
+                 if (updateUI) {
+                    this.elements.finetuneDetailsPlaceholder.textContent = 'Could not load details (empty response).';
+                    FluxUI.showNotification(`Could not load details for ${finetuneId}.`, 'warning');
+                 }
+                return null; // Indicate failure but don't throw error unless network issue
             }
         } catch (error) {
             console.error(`Error fetching details for ${finetuneId}:`, error);
-            this.elements.finetuneDetailsPlaceholder.textContent = `Error loading details: ${error.message}`;
-            FluxUI.showNotification(`Failed to fetch details: ${error.message}`, 'error');
+             if (updateUI) {
+                this.elements.finetuneDetailsPlaceholder.textContent = `Error loading details: ${error.message}`;
+                FluxUI.showNotification(`Failed to fetch details: ${error.message}`, 'error');
+             }
+            throw error; // Re-throw error so Promise.all catches it and fetchMyFinetunes handles it
         }
     },
 
