@@ -545,6 +545,14 @@ const GeneratorTab = {
         this.elements.imagePromptGroup.classList.remove('hidden');
         this.elements.promptUpsamplingGroup.classList.remove('hidden');
         
+        // Hide finetune selector for models that don't support it
+        const showFinetune = !['flux-pro-1.1', 'flux-dev'].includes(model);
+        this.elements.finetuneSelector.closest('.mb-4').classList.toggle('hidden', !showFinetune);
+        if (!showFinetune) {
+            this.elements.finetuneSelector.value = '';
+            this.handleFinetuneSelection();
+        }
+             
         // Update dimension grid if dimensions are visible for this model
         if (showDimensions) {
             this.updateDimensionGrid(this.selectedOrientation);

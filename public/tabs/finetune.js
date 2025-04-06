@@ -184,8 +184,10 @@ const FinetuneTab = {
 
                     <!-- Webhook Secret (Optional) -->
                     <div>
-                        <label for="finetune-webhook-secret" class="block text-sm font-medium text-gray-700 mb-1">Webhook Secret (Optional)</label>
-                        <input type="password" id="finetune-webhook-secret" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional secret for verification">
+                        <form>
+                            <label for="finetune-webhook-secret" class="block text-sm font-medium text-gray-700 mb-1">Webhook Secret (Optional)</label>
+                            <input type="password" id="finetune-webhook-secret" autocomplete="new-password" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional secret for verification">
+                        </form>
                     </div>
 
                     <!-- Start Button -->
