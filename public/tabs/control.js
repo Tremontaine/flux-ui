@@ -95,9 +95,9 @@ const ControlTab = {
         // Action buttons
         this.elements.actionButtons = document.getElementById('control-action-buttons');
         this.elements.copyParamsBtn = document.getElementById('control-copy-params-btn');
-        this.elements.downloadBtn = document.getElementById('control-download-btn');
-        this.elements.saveImageBtn = document.getElementById('control-save-image-btn');
-        this.elements.copyImageBtn = document.getElementById('control-copy-image-btn');
+        this.elements.openImageBtn = document.getElementById('control-open-image-btn'); // Renamed ID
+        this.elements.downloadImageBtn = document.getElementById('control-download-image-btn'); // Renamed ID
+        this.elements.copyImageUrlBtn = document.getElementById('control-copy-image-url-btn'); // Renamed ID
 
         // Generate button
         this.elements.generateBtn = document.getElementById('control-generate-btn');
@@ -274,13 +274,13 @@ const ControlTab = {
                             <button id="control-copy-params-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Copy Parameters
                             </button>
-                            <button id="control-download-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="control-open-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Open Image
                             </button>
-                            <button id="control-save-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="control-download-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Download Image
                             </button>
-                            <button id="control-copy-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="control-copy-image-url-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Copy Image URL
                             </button>
                         </div>
@@ -325,9 +325,9 @@ const ControlTab = {
         // this.elements.selectFromGalleryBtn.addEventListener('click', this.selectControlImageFromGallery.bind(this)); // Removed listener
 
         // Setup action buttons
-        if (this.elements.downloadBtn) this.elements.downloadBtn.addEventListener('click', this.openImage.bind(this));
-        if (this.elements.saveImageBtn) this.elements.saveImageBtn.addEventListener('click', this.downloadImage.bind(this));
-        if (this.elements.copyImageBtn) this.elements.copyImageBtn.addEventListener('click', this.copyImageUrl.bind(this));
+        if (this.elements.openImageBtn) this.elements.openImageBtn.addEventListener('click', this.openImage.bind(this)); // Use renamed ID
+        if (this.elements.downloadImageBtn) this.elements.downloadImageBtn.addEventListener('click', this.downloadImage.bind(this)); // Use renamed ID
+        if (this.elements.copyImageUrlBtn) this.elements.copyImageUrlBtn.addEventListener('click', this.copyImageUrl.bind(this)); // Use renamed ID
         if (this.elements.copyParamsBtn) this.elements.copyParamsBtn.addEventListener('click', this.copyParams.bind(this));
 
         console.log('Control Tab: Event listeners set up');
@@ -570,9 +570,9 @@ const ControlTab = {
 
         // Show action buttons
         this.elements.copyParamsBtn.classList.remove('hidden');
-        this.elements.downloadBtn.classList.remove('hidden');
-        this.elements.saveImageBtn.classList.remove('hidden');
-        this.elements.copyImageBtn.classList.remove('hidden');
+        this.elements.openImageBtn.classList.remove('hidden'); // Use renamed ID
+        this.elements.downloadImageBtn.classList.remove('hidden'); // Use renamed ID
+        this.elements.copyImageUrlBtn.classList.remove('hidden'); // Use renamed ID
 
         // Add fallback in case the image doesn't load
         this.elements.previewImage.onerror = () => {
@@ -603,9 +603,9 @@ const ControlTab = {
 
             // Hide action buttons
             this.elements.copyParamsBtn.classList.add('hidden');
-            this.elements.downloadBtn.classList.add('hidden');
-            this.elements.saveImageBtn.classList.add('hidden');
-            this.elements.copyImageBtn.classList.add('hidden');
+            this.elements.openImageBtn.classList.add('hidden'); // Use renamed ID
+            this.elements.downloadImageBtn.classList.add('hidden'); // Use renamed ID
+            this.elements.copyImageUrlBtn.classList.add('hidden'); // Use renamed ID
 
             // Remove any fallback buttons
             const fallbackButton = this.elements.previewContainer.querySelector('.text-center.mt-4');
@@ -722,7 +722,7 @@ const ControlTab = {
             })
             .catch(error => {
                 console.error('Error saving to gallery:', error);
-                // Don't bother user if gallery save fails silently
+                window.FluxUI.showNotification('Warning: Failed to save image to gallery. ' + error.message, 'warning'); // Add user notification
             });
     }
 };

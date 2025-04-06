@@ -697,7 +697,7 @@ const InpaintTab = {
                 })
                 .catch(error => {
                     console.error("Error fetching image blob for gallery:", error);
-                    FluxUI.showNotification('Failed to add image to gallery.', 'error');
+                    FluxUI.showNotification('Failed to add image to gallery: ' + error.message, 'error'); // Add user notification with error message
                 });
         } else {
             FluxUI.showNotification('No image generated yet or gallery not available.', 'warning');

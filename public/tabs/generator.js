@@ -101,9 +101,9 @@ const GeneratorTab = {
         // Action buttons
         this.elements.actionButtons = document.getElementById('action-buttons');
         this.elements.copyParamsBtn = document.getElementById('copy-params-btn');
-        this.elements.downloadBtn = document.getElementById('download-btn');
-        this.elements.saveImageBtn = document.getElementById('save-image-btn');
-        this.elements.copyImageBtn = document.getElementById('copy-image-btn');
+        this.elements.openImageBtn = document.getElementById('open-image-btn'); // Renamed ID
+        this.elements.downloadImageBtn = document.getElementById('download-image-btn'); // Renamed ID
+        this.elements.copyImageUrlBtn = document.getElementById('copy-image-url-btn'); // Renamed ID
         
         // Generate button
         this.elements.generateBtn = document.getElementById('generate-btn');
@@ -312,13 +312,13 @@ const GeneratorTab = {
                             <button id="copy-params-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Copy Parameters
                             </button>
-                            <button id="download-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="open-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Open Image
                             </button>
-                            <button id="save-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="download-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Download Image
                             </button>
-                            <button id="copy-image-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                            <button id="copy-image-url-btn" class="px-3 py-1.5 border border-gray-300 bg-white text-gray-600 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
                                 Copy Image URL
                             </button>
                         </div>
@@ -368,16 +368,16 @@ const GeneratorTab = {
         }
         
         // Setup action buttons - Add defensive checks
-        if (this.elements.downloadBtn) {
-            this.elements.downloadBtn.addEventListener('click', this.openImage.bind(this));
+        if (this.elements.openImageBtn) { // Use renamed ID
+            this.elements.openImageBtn.addEventListener('click', this.openImage.bind(this));
         }
-        
-        if (this.elements.saveImageBtn) {
-            this.elements.saveImageBtn.addEventListener('click', this.downloadImage.bind(this));
+
+        if (this.elements.downloadImageBtn) { // Use renamed ID
+            this.elements.downloadImageBtn.addEventListener('click', this.downloadImage.bind(this));
         }
-        
-        if (this.elements.copyImageBtn) {
-            this.elements.copyImageBtn.addEventListener('click', this.copyImageUrl.bind(this));
+
+        if (this.elements.copyImageUrlBtn) { // Use renamed ID
+            this.elements.copyImageUrlBtn.addEventListener('click', this.copyImageUrl.bind(this));
         }
         
         if (this.elements.copyParamsBtn) {
@@ -824,9 +824,9 @@ const GeneratorTab = {
         
         // Show action buttons
         this.elements.copyParamsBtn.classList.remove('hidden');
-        this.elements.downloadBtn.classList.remove('hidden');
-        this.elements.saveImageBtn.classList.remove('hidden');
-        this.elements.copyImageBtn.classList.remove('hidden');
+        this.elements.openImageBtn.classList.remove('hidden'); // Use renamed ID
+        this.elements.downloadImageBtn.classList.remove('hidden'); // Use renamed ID
+        this.elements.copyImageUrlBtn.classList.remove('hidden'); // Use renamed ID
         
         // Add fallback in case the image doesn't load
         this.elements.previewImage.onerror = () => {
@@ -866,9 +866,9 @@ const GeneratorTab = {
             
             // Hide action buttons
             this.elements.copyParamsBtn.classList.add('hidden');
-            this.elements.downloadBtn.classList.add('hidden');
-            this.elements.saveImageBtn.classList.add('hidden');
-            this.elements.copyImageBtn.classList.add('hidden');
+            this.elements.openImageBtn.classList.add('hidden'); // Use renamed ID
+            this.elements.downloadImageBtn.classList.add('hidden'); // Use renamed ID
+            this.elements.copyImageUrlBtn.classList.add('hidden'); // Use renamed ID
             
             // Remove any fallback buttons
             const fallbackButton = this.elements.previewContainer.querySelector('.text-center.mt-4');
@@ -1021,6 +1021,7 @@ const GeneratorTab = {
             })
             .catch(error => {
                 console.error('Error saving to gallery:', error);
+                window.FluxUI.showNotification('Failed to save image to gallery: ' + error.message, 'error'); // Add user notification
             });
     }
 };

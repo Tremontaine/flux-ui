@@ -7,7 +7,7 @@
 const FluxUI = {
     // Configuration
     apiConfig: {
-        baseUrl: 'https://api.us1.bfl.ai/v1',
+        // baseUrl: 'https://api.us1.bfl.ai/v1', // Removed: Using server proxy now
         apiKey: ''
     },
     

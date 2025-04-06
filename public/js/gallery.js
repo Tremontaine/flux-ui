@@ -439,7 +439,7 @@ window.FluxGallery = {
     // Handle gallery item click (Modal) - Use item.objectURL
     handleGalleryItemClick: function(item) {
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 gallery-modal';
+        modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black bg-opacity-80 gallery-modal'; // Added responsive padding
 
         // Format metadata (unchanged logic)
         let metadataHtml = '';
@@ -452,23 +452,23 @@ window.FluxGallery = {
                     <div class="mb-2"><span class="font-bold text-indigo-300">Size:</span> ${width || '?'} × ${height || '?'}</div>
                     <div class="mb-2"><span class="font-bold text-indigo-300">Seed:</span> ${seed || 'Unknown'}</div>
                     <div class="mb-2"><span class="font-bold text-indigo-300">Date:</span> ${date}</div>
-                    ${prompt ? `<div class="mb-1"><span class="font-bold text-indigo-300">Prompt:</span> <div class="text-xs mt-1 text-gray-300 max-h-24 overflow-y-auto bg-gray-700 p-2 rounded">${prompt}</div></div>` : ''}
+                    ${prompt ? `<div class="mb-1"><span class="font-bold text-indigo-300">Prompt:</span> <div class="text-xs mt-1 text-gray-300 max-h-32 overflow-y-auto bg-gray-700 p-2 rounded">${prompt}</div></div>` : ''} <!-- Increased max-h for prompt -->
                 </div>
             `;
         }
 
         // Modal content (use item.objectURL for the main image)
         modal.innerHTML = `
-            <div class="bg-gray-900 rounded-lg shadow-xl max-w-3xl max-h-full overflow-auto gallery-modal-content">
-                <div class="p-5">
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="text-lg font-semibold text-white">Gallery Image</h3>
-                        <button class="modal-close p-1 bg-gray-700 hover:bg-gray-600 text-white rounded-full transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                    <div class="image-container bg-black rounded-md overflow-hidden flex justify-center items-center">
-                        <img src="${item.objectURL}" alt="Generated image" class="max-w-full max-h-[calc(100vh-300px)] object-contain">
+            <div class="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col gallery-modal-content"> <!-- Adjusted max-w, max-h, overflow-hidden -->
+                <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+                     <h3 class="text-lg font-semibold text-white">Gallery Image</h3>
+                     <button class="modal-close p-1 bg-gray-700 hover:bg-gray-600 text-white rounded-full transition-colors">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                     </button>
+                </div>
+                <div class="p-5 overflow-y-auto"> <!-- Added inner scrollable container -->
+                    <div class="image-container bg-black rounded-md overflow-hidden flex justify-center items-center mb-4">
+                        <img src="${item.objectURL}" alt="Generated image" class="max-w-full max-h-[60vh] object-contain"> <!-- Adjusted max-h for image -->
                     </div>
                     ${metadataHtml}
                     <div class="flex flex-wrap gap-2 mt-4">
@@ -510,7 +510,10 @@ window.FluxGallery = {
         const timestamp = item.metadata.timestamp
             ? new Date(item.metadata.timestamp).toISOString().replace(/[:.]/g, '-').slice(0, 19)
             : new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        link.download = `${model}-${timestamp}.png`; // Assuming PNG, might need adjustment if format varies
+        // Determine file extension based on stored metadata
+        const format = item.metadata?.output_format || 'png'; // Default to png if not specified
+        const extension = format === 'jpeg' ? 'jpg' : 'png';
+        link.download = `${model}-${timestamp}.${extension}`;
 
         document.body.appendChild(link);
         link.click();
