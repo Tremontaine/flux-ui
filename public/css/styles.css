@@ -103,3 +103,163 @@ button:active {
 .tab-content.active {
     display: block;
 }
+
+/* Dark Mode Styles */
+.dark body {
+    background-color: #111827; /* gray-900 */
+    color: #e5e7eb; /* gray-200 - Brighter default text */
+}
+
+.dark header,
+.dark footer,
+.dark .bg-white {
+    background-color: #1f2937; /* gray-800 */
+    border-color: #374151; /* gray-700 */
+}
+
+.dark h1,
+.dark .text-indigo-600 {
+    color: #818cf8; /* indigo-400 */
+}
+
+.dark a.text-indigo-600:hover,
+.dark a.text-indigo-800:hover {
+    color: #a5b4fc; /* indigo-300 */
+}
+
+.dark input[type="password"],
+.dark input[type="text"],
+.dark input[type="number"],
+.dark select,
+.dark textarea {
+    background-color: #374151; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+    color: #f3f4f6; /* gray-100 - Brighter input text */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #9ca3af; /* gray-400 */
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+    border-color: #6366f1; /* indigo-500 */
+    --tw-ring-color: #6366f1; /* indigo-500 */
+}
+
+.dark button {
+    /* Adjust default button colors if needed, or rely on specific classes */
+}
+
+.dark .bg-indigo-600 {
+    background-color: #4f46e5; /* indigo-600 - keep same or adjust */
+}
+
+.dark .hover\:bg-indigo-700:hover {
+    background-color: #4338ca; /* indigo-700 - keep same or adjust */
+}
+
+.dark .bg-red-600 {
+    background-color: #dc2626; /* red-600 */
+}
+
+.dark .hover\:bg-red-700:hover {
+    background-color: #b91c1c; /* red-700 */
+}
+
+.dark .text-white {
+    color: #ffffff;
+}
+
+.dark .text-gray-500,
+.dark label /* Target labels specifically */ {
+    color: #d1d5db; /* gray-300 - Make labels brighter */
+}
+
+.dark .border-gray-200 {
+    border-color: #374151; /* gray-700 */
+}
+
+.dark .border-gray-300 {
+    border-color: #4b5563; /* gray-600 */
+}
+
+.dark .shadow-sm {
+    --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.15); /* Slightly darker shadow */
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+/* Tab Navigation Dark */
+.dark .tab-navigation {
+    background-color: #1f2937; /* gray-800 */
+    border-bottom-color: #374151; /* gray-700 */
+}
+
+.dark .tab-button {
+    color: #d1d5db; /* gray-300 - Brighter inactive tab text */
+}
+
+.dark .tab-button:hover {
+    color: #a5b4fc; /* indigo-300 */
+}
+
+.dark .tab-button.active {
+    color: #818cf8; /* indigo-400 */
+    border-bottom-color: #818cf8; /* indigo-400 */
+}
+
+/* Gallery Dark */
+.dark .gallery-sidebar {
+    background-color: #1f2937; /* gray-800 */
+    border-left-color: #374151; /* gray-700 */
+}
+
+.dark .gallery-toggle {
+    background-color: #374151; /* gray-700 */
+    color: #e5e7eb; /* gray-200 - Brighter gallery toggle icon */
+}
+
+.dark .gallery-toggle:hover {
+    background-color: #4b5563; /* gray-600 */
+}
+
+.dark .gallery-title,
+.dark .gallery-counter,
+.dark .gallery-item-prompt /* Make prompt text brighter */ {
+    color: #d1d5db; /* gray-300 */
+}
+
+.dark .gallery-item {
+    border-bottom-color: #374151; /* gray-700 */
+}
+
+/* Removed rule - merged above */
+
+.dark .clear-gallery-btn {
+    background-color: #374151; /* gray-700 */
+    color: #e5e7eb; /* gray-200 - Brighter clear button text */
+}
+
+.dark .clear-gallery-btn:hover {
+    background-color: #4b5563; /* gray-600 */
+}
+
+/* Notification Dark */
+.dark #notification {
+    /* Keep colors as they are for visibility, or adjust if needed */
+}
+
+/* Input Range Dark */
+.dark input[type="range"] {
+    background: #4b5563; /* gray-600 */
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+    background: #818cf8; /* indigo-400 */
+}
+
+.dark input[type="range"]::-webkit-slider-thumb:hover {
+    background: #a5b4fc; /* indigo-300 */
+}

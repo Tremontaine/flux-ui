@@ -32,7 +32,11 @@ const FluxUI = {
             saveApiKeyBtn: document.getElementById('save-api-key'),
             notification: document.getElementById('notification'),
             notificationMessage: document.getElementById('notification-message'),
-            notificationIcon: document.getElementById('notification-icon')
+            notificationIcon: document.getElementById('notification-icon'),
+            darkModeToggle: document.getElementById('dark-mode-toggle'),
+            clearApiKeyBtn: document.getElementById('clear-api-key'),
+            themeToggleLightIcon: document.getElementById('theme-toggle-light-icon'),
+            themeToggleDarkIcon: document.getElementById('theme-toggle-dark-icon')
         };
         
         // Try to get API key from localStorage
@@ -54,6 +58,10 @@ const FluxUI = {
         // Initialize the first tab (needed for navigation only)
         this.activateTab(document.querySelector('.tab-button.active') || this.elements.tabButtons[0]);
         
+        
+        // Initialize dark mode based on localStorage
+        this.initializeDarkMode();
+        
         console.log('Main UI initialized');
     },
     
@@ -66,6 +74,12 @@ const FluxUI = {
         
         // API key save
         this.elements.saveApiKeyBtn.addEventListener('click', this.saveApiKey.bind(this));
+        
+        // Dark mode toggle
+        this.elements.darkModeToggle.addEventListener('click', this.toggleDarkMode.bind(this));
+        
+        // Clear API key
+        this.elements.clearApiKeyBtn.addEventListener('click', this.clearApiKey.bind(this));
     },
     
     // Activate a tab
@@ -108,6 +122,22 @@ const FluxUI = {
         } catch (error) {
             console.error('Error saving API key:', error);
             this.showNotification('Failed to save API key', 'error');
+        }
+    },
+    
+    // Clear API key
+    clearApiKey: function() {
+        try {
+            localStorage.removeItem('flux_api_key');
+            this.apiConfig.apiKey = '';
+            this.elements.apiKeyInput.value = '';
+            this.elements.apiKeyInput.placeholder = 'Enter API Key'; // Reset placeholder
+            this.showNotification('API key cleared successfully!', 'success');
+            // Clear stored finetunes as the key is removed
+            this.fetchAndStoreFinetunes();
+        } catch (error) {
+            console.error('Error clearing API key:', error);
+            this.showNotification('Failed to clear API key', 'error');
         }
     },
     
@@ -182,6 +212,39 @@ const FluxUI = {
                 module.updateFinetuneOptions(this.finetunes);
             }
         });
+    },
+
+    // Initialize Dark Mode
+    initializeDarkMode: function() {
+        if (localStorage.getItem('color-theme') === 'dark' ||
+            (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            this.setDarkMode(true);
+        } else {
+            this.setDarkMode(false);
+        }
+    },
+
+    // Toggle Dark Mode
+    toggleDarkMode: function() {
+        const isDark = document.documentElement.classList.contains('dark');
+        this.setDarkMode(!isDark);
+    },
+
+    // Set Dark Mode state
+    setDarkMode: function(isDark) {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+            this.elements.themeToggleLightIcon.classList.remove('hidden');
+            this.elements.themeToggleDarkIcon.classList.add('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+            this.elements.themeToggleLightIcon.classList.add('hidden');
+            this.elements.themeToggleDarkIcon.classList.remove('hidden');
+        }
+        // Add/remove dark class from body as well if needed for specific styles
+        // document.body.classList.toggle('dark', isDark);
     }
 };
 
