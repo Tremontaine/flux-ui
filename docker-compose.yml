@@ -1,0 +1,9 @@
+services:
+  flux-ui:
+    build:
+      context: . # Use the current directory as the build context
+      dockerfile: Dockerfile # Specify the Dockerfile name
+    container_name: Flux-UI # Assign a name to the container
+    ports:
+      - "3589:3589" # Map host port 3589 to container port 3589
+    restart: unless-stopped # Restart the container unless it's manually stopped
