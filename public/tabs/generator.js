@@ -9,8 +9,8 @@ const GeneratorTab = {
     imagePromptData: null,
     currentParams: {},
     currentImageUrl: '',
-    selectedOrientation: 'landscape', // Default orientation
-    selectedDimension: '1024x768', // Default dimension
+    selectedOrientation: 'portrait', // Default orientation
+    selectedDimension: '1024x1440', // Default dimension
     
     // DOM Elements
     elements: {},
@@ -196,8 +196,8 @@ const GeneratorTab = {
                         <!-- Orientation Selection -->
                         <div id="orientation-buttons" class="flex space-x-2 mb-3">
                             <button type="button" data-orientation="square" class="orientation-button flex-1 px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Square</button>
-                            <button type="button" data-orientation="landscape" class="orientation-button flex-1 px-3 py-1 border border-indigo-500 bg-indigo-50 text-indigo-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 selected-orientation">Landscape</button> <!-- Default -->
-                            <button type="button" data-orientation="portrait" class="orientation-button flex-1 px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Portrait</button>
+                            <button type="button" data-orientation="landscape" class="orientation-button flex-1 px-3 py-1 border border-gray-300 bg-white text-gray-700 rounded-md text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Landscape</button>
+                            <button type="button" data-orientation="portrait" class="orientation-button flex-1 px-3 py-1 border border-indigo-500 bg-indigo-50 text-indigo-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 selected-orientation">Portrait</button> <!-- Default -->
                         </div>
                         <!-- Dimension Grid (Populated Dynamically) -->
                         <div id="dimensions-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
