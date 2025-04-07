@@ -24,7 +24,7 @@ COPY public/ ./public/
 FROM alpine:3.18
 
 # Install only the Node.js runtime (smallest package available)
-RUN apk add --no-cache nodejs-current-minimal
+RUN apk add --no-cache nodejs
 
 # Create app directory
 WORKDIR /app
