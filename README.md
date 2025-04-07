@@ -13,6 +13,7 @@ A comprehensive web-based interface for the Black Forest Labs Flux AI API, provi
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running Locally](#running-locally)
+  - [Docker Setup](#docker-setup)
 - [Usage Guide](#usage-guide)
   - [Generator Tab](#generator-tab)
   - [Inpaint Tab](#inpaint-tab)
@@ -20,12 +21,12 @@ A comprehensive web-based interface for the Black Forest Labs Flux AI API, provi
   - [Control Tab](#control-tab)
   - [Finetune Tab](#finetune-tab)
   - [Gallery](#gallery)
+  - [Dark Mode](#dark-mode)
 - [Technical Details](#technical-details)
   - [API Integration](#api-integration)
   - [Proxy Server](#proxy-server)
   - [Image Storage](#image-storage)
 - [Security Considerations](#security-considerations)
-
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -77,6 +78,12 @@ Flux UI is a feature-rich interface for Black Forest Labs' Flux AI image generat
   - Raw mode for Ultra model
   - Interval parameter control for Pro model
 
+- **Dark Mode**: Toggle between light and dark themes for comfortable use in any environment
+
+- **API Key Management**:
+  - Securely store API key in browser's localStorage
+  - Easily clear stored API key when needed
+
 ## Architecture
 
 Flux UI consists of two main components:
@@ -124,6 +131,23 @@ The application is designed to run entirely in the browser with minimal server r
 2. Open `http://localhost:3589` in your browser.
 
 3. Enter your BFL API key in the header input field and click "Save Key".
+
+### Docker Setup
+
+Flux UI can be easily deployed using Docker:
+
+1. Build and run using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. Or build and run the Docker image directly:
+   ```bash
+   docker build -t flux-ui .
+   docker run -p 3589:3589 flux-ui
+   ```
+
+3. Access the application at `http://localhost:3589`
 
 ## Usage Guide
 
@@ -246,6 +270,14 @@ The Gallery is a sidebar feature that stores all generated images locally in you
 - Click on an image to view it full size with all parameters
 - Use the "Use for..." buttons to send an image to another tab
 
+### Dark Mode
+
+Flux UI includes a dark mode for comfortable use in low-light environments:
+
+- Toggle between light and dark themes using the icon in the header.
+- Your preference is saved automatically and persists between sessions.
+- Dark mode reduces eye strain and can save battery life on certain devices.
+
 ## Technical Details
 
 ### API Integration
@@ -298,6 +330,8 @@ This application handles your Black Forest Labs API key and image data. It's imp
 
 - **API Key Transmission**: When making requests to the BFL API, your API key is sent from your browser to the local proxy server (running on your machine or your deployment), and then from the proxy to the BFL API. The key is transmitted in HTTP headers. If you're running the application locally, this traffic stays on your machine. If deployed, ensure you use HTTPS to encrypt this traffic.
 
+- **API Key Management**: The application provides a "Clear Key" button to remove your API key from localStorage when needed, enhancing security on shared devices.
+
 - **Proxy Server Function**: The Node.js server included with this application acts as an intermediary between your browser and the BFL API. It forwards your requests and API key to BFL, and returns the responses to your browser. This proxy primarily exists to bypass CORS restrictions and provide image proxying capabilities, not as a security measure.
 
 - **Data Processing Location**: 
@@ -312,8 +346,6 @@ This application handles your Black Forest Labs API key and image data. It's imp
 - **Network Requests**: You can verify all network requests made by this application using your browser's developer tools. All API requests should go to either the local proxy server or directly to BFL endpoints if configured to do so.
 
 - **Limitations**: This application does not implement end-to-end encryption or advanced security features. Your security depends partly on the security of your browser, your local system, the BFL API, and (if deployed remotely) your deployment platform.
-
-
 
 ## Contributing
 
