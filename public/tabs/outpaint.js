@@ -27,6 +27,8 @@ const OutpaintTab = {
         this.createTabContent();
         this.getElements(); // Get elements after creating content
         this.setupEventListeners();
+        // Generate an initial random seed on load
+        this.generateRandomSeed();
         console.log('Outpaint Tab initialized');
     },
 
@@ -116,6 +118,11 @@ const OutpaintTab = {
                             <button id="outpaint-random-seed-btn" class="px-3 py-2 bg-gray-100 border border-gray-300 border-l-0 rounded-r-md hover:bg-gray-200">
                                 🎲
                             </button>
+                        </div>
+                        <!-- Randomize Seed Checkbox -->
+                        <div class="mt-2 flex items-center">
+                            <input type="checkbox" id="outpaint-randomize-seed-checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="outpaint-randomize-seed-checkbox" class="ml-2 block text-sm text-gray-700">Randomize seed before each generation</label>
                         </div>
                     </div>
 
@@ -218,6 +225,7 @@ const OutpaintTab = {
         this.elements.safetyValue = this.elements.outpaintContainer.querySelector('#outpaint-safety-value');
         this.elements.seedInput = this.elements.outpaintContainer.querySelector('#outpaint-seed-input');
         this.elements.randomSeedBtn = this.elements.outpaintContainer.querySelector('#outpaint-random-seed-btn');
+        this.elements.randomizeSeedCheckbox = this.elements.outpaintContainer.querySelector('#outpaint-randomize-seed-checkbox'); // New checkbox
 
         // Advanced
         this.elements.advancedToggle = this.elements.outpaintContainer.querySelector('#outpaint-advanced-toggle');
@@ -469,6 +477,11 @@ const OutpaintTab = {
         const prompt = this.elements.promptInput.value.trim();
         const selectedFormat = this.elements.outpaintContainer.querySelector('input[name="outpaint-output-format"]:checked');
 
+        // Check if seed should be randomized before generation
+        if (this.elements.randomizeSeedCheckbox.checked) {
+            this.generateRandomSeed(); // Update the input field with a new random seed
+        }
+
         const params = {
             image: this.imageData.split(',')[1], // Send base64 part only
             top: top,
@@ -478,7 +491,7 @@ const OutpaintTab = {
             prompt: prompt || "", // Send empty string if no prompt
             steps: parseInt(this.elements.stepsSlider.value) || 50,
             guidance: parseFloat(this.elements.guidanceSlider.value) || 60,
-            seed: this.elements.seedInput.value ? parseInt(this.elements.seedInput.value) : null,
+            seed: this.elements.seedInput.value ? parseInt(this.elements.seedInput.value) : null, // Use potentially randomized seed
             prompt_upsampling: this.elements.promptUpsamplingInput.checked,
             output_format: selectedFormat ? selectedFormat.value : 'jpeg',
             safety_tolerance: parseInt(this.elements.safetySlider.value) || 2

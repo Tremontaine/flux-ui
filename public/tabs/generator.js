@@ -41,6 +41,9 @@ const GeneratorTab = {
         // Setup event listeners
         this.setupEventListeners();
 
+        // Generate an initial random seed on load
+        this.generateRandomSeed();
+
         // Listen for finetune list updates from the FinetuneTab
         document.addEventListener('finetunesListUpdated', (event) => {
             console.log("Generator Tab received finetunesListUpdated event:", event.detail);
@@ -76,6 +79,7 @@ const GeneratorTab = {
         this.elements.safetyValue = document.getElementById('safety-value');
         this.elements.seedInput = document.getElementById('seed-input');
         this.elements.randomSeedBtn = document.getElementById('random-seed-btn');
+        this.elements.randomizeSeedCheckbox = document.getElementById('randomize-seed-checkbox'); // New checkbox
         this.elements.promptUpsampling = document.getElementById('prompt-upsampling');
         this.elements.rawMode = document.getElementById('raw-mode');
         this.elements.intervalSlider = document.getElementById('interval-slider');
@@ -265,8 +269,13 @@ const GeneratorTab = {
                                 🎲
                             </button>
                         </div>
+                        <!-- Randomize Seed Checkbox -->
+                        <div class="mt-2 flex items-center">
+                            <input type="checkbox" id="randomize-seed-checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="randomize-seed-checkbox" class="ml-2 block text-sm text-gray-700">Randomize seed before each generation</label>
+                        </div>
                     </div>
-                    
+
                     <!-- Advanced Options -->
                     <div class="mb-4">
                         <div class="flex justify-between items-center cursor-pointer" id="advanced-toggle">
@@ -763,12 +772,17 @@ const GeneratorTab = {
             window.FluxUI.showNotification('Please enter a prompt', 'error');
             return null;
         }
-        
-        // Add seed if provided
+
+        // Check if seed should be randomized before generation
+        if (this.elements.randomizeSeedCheckbox.checked) {
+            this.generateRandomSeed(); // Update the input field with a new random seed
+        }
+
+        // Add seed if provided (will now use the potentially newly randomized seed)
         if (this.elements.seedInput.value) {
             params.seed = parseInt(this.elements.seedInput.value);
         }
-        
+
         // Add image prompt if uploaded
         if (this.imagePromptData) {
             params.image_prompt = this.imagePromptData;

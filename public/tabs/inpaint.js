@@ -36,6 +36,9 @@ const InpaintTab = {
         this.getElements(); // Get elements after creating content
         this.setupEventListeners();
 
+        // Generate an initial random seed on load
+        this.generateRandomSeed();
+
         // Listen for finetune list updates from the FinetuneTab
         document.addEventListener('finetunesListUpdated', (event) => {
             console.log("Inpaint Tab received finetunesListUpdated event:", event.detail);
@@ -134,6 +137,11 @@ const InpaintTab = {
                             <button id="inpaint-random-seed-btn" class="px-3 py-2 bg-gray-100 border border-gray-300 border-l-0 rounded-r-md hover:bg-gray-200">
                                 🎲
                             </button>
+                        </div>
+                        <!-- Randomize Seed Checkbox -->
+                        <div class="mt-2 flex items-center">
+                            <input type="checkbox" id="inpaint-randomize-seed-checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="inpaint-randomize-seed-checkbox" class="ml-2 block text-sm text-gray-700">Randomize seed before each generation</label>
                         </div>
                     </div>
 
@@ -234,6 +242,7 @@ const InpaintTab = {
         this.elements.safetyValue = this.elements.inpaintContainer.querySelector('#inpaint-safety-value');
         this.elements.seedInput = this.elements.inpaintContainer.querySelector('#inpaint-seed-input');
         this.elements.randomSeedBtn = this.elements.inpaintContainer.querySelector('#inpaint-random-seed-btn');
+        this.elements.randomizeSeedCheckbox = this.elements.inpaintContainer.querySelector('#inpaint-randomize-seed-checkbox'); // New checkbox
 
         // Advanced
         this.elements.advancedToggle = this.elements.inpaintContainer.querySelector('#inpaint-advanced-toggle');
@@ -676,13 +685,18 @@ const InpaintTab = {
             const prompt = this.elements.promptInput.value.trim();
             const selectedFormat = this.elements.inpaintContainer.querySelector('input[name="inpaint-output-format"]:checked');
 
+            // Check if seed should be randomized before generation
+            if (this.elements.randomizeSeedCheckbox.checked) {
+                this.generateRandomSeed(); // Update the input field with a new random seed
+            }
+
             const params = {
                 image: this.imageData.split(',')[1], // Send base64 part only
                 mask: this.maskData.split(',')[1],   // Send base64 part only
                 prompt: prompt || "", // Send empty string if no prompt
                 steps: parseInt(this.elements.stepsSlider.value) || 50,
                 guidance: parseFloat(this.elements.guidanceSlider.value) || 60,
-                seed: this.elements.seedInput.value ? parseInt(this.elements.seedInput.value) : null,
+                seed: this.elements.seedInput.value ? parseInt(this.elements.seedInput.value) : null, // Use potentially randomized seed
                 prompt_upsampling: this.elements.promptUpsamplingInput.checked,
                 output_format: selectedFormat ? selectedFormat.value : 'jpeg',
                 safety_tolerance: parseInt(this.elements.safetySlider.value) || 2
