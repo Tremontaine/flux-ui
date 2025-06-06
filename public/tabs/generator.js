@@ -168,6 +168,8 @@ const GeneratorTab = {
                             <option value="flux-pro">Flux Pro</option>
                             <option value="flux-dev">Flux Dev</option>
                             <option value="flux-pro-1.1-ultra">Flux Ultra</option>
+                            <option value="flux-kontext-pro">Flux Kontext Pro</option>
+                            <option value="flux-kontext-max">Flux Kontext Max</option>
                         </select>
                     </div>
                     
@@ -493,6 +495,7 @@ const GeneratorTab = {
         let showGuidance = true;
         let showRaw = false;
         let showInterval = false;
+        let showImagePrompt = true; // New variable for controlling image prompt visibility
         
         // Show image prompt strength only if there's an image AND it's Ultra model
         const showImageStrength = this.imagePromptData && model === 'flux-pro-1.1-ultra';
@@ -540,6 +543,18 @@ const GeneratorTab = {
                 showSteps = false;
                 showGuidance = false;
                 break;
+// Add cases for new Kontext models
+            case 'flux-kontext-pro':
+            case 'flux-kontext-max':
+                showDimensions = false;
+                showAspectRatio = true;
+                showRaw = false;
+                showSteps = false;
+                showGuidance = false;
+                showImagePrompt = true; // Show image prompt for Kontext models
+                // Show prompt upsampling for Kontext models
+                this.elements.promptUpsamplingGroup.classList.remove('hidden');
+                break;
         }
         
         // Apply visibility based on the model logic above
@@ -550,12 +565,12 @@ const GeneratorTab = {
         this.elements.rawModeGroup.classList.toggle('hidden', !showRaw);
         this.elements.intervalGroup.classList.toggle('hidden', !showInterval);
         
-        // Always show these for all models currently
-        this.elements.imagePromptGroup.classList.remove('hidden');
+        // Control image prompt visibility based on model
+        this.elements.imagePromptGroup.classList.toggle('hidden', !showImagePrompt);
         this.elements.promptUpsamplingGroup.classList.remove('hidden');
         
         // Hide finetune selector for models that don't support it
-        const showFinetune = !['flux-pro-1.1', 'flux-dev'].includes(model);
+        const showFinetune = !['flux-pro-1.1', 'flux-dev', 'flux-kontext-pro', 'flux-kontext-max'].includes(model);
         this.elements.finetuneSelector.closest('.mb-4').classList.toggle('hidden', !showFinetune);
         if (!showFinetune) {
             this.elements.finetuneSelector.value = '';
@@ -785,11 +800,16 @@ const GeneratorTab = {
 
         // Add image prompt if uploaded
         if (this.imagePromptData) {
-            params.image_prompt = this.imagePromptData;
-            
-            // Add image prompt strength for Ultra model
-            if (model === 'flux-pro-1.1-ultra') {
-                params.image_prompt_strength = parseFloat(this.elements.imagePromptStrength.value);
+            // Kontext models use 'input_image' parameter instead of 'image_prompt'
+            if (model === 'flux-kontext-pro' || model === 'flux-kontext-max') {
+                params.input_image = this.imagePromptData;
+            } else {
+                params.image_prompt = this.imagePromptData;
+                
+                // Add image prompt strength for Ultra model
+                if (model === 'flux-pro-1.1-ultra') {
+                    params.image_prompt_strength = parseFloat(this.elements.imagePromptStrength.value);
+                }
             }
         }
         
@@ -821,14 +841,14 @@ const GeneratorTab = {
                     params.raw = true;
                 }
                 break;
-                
+            
             case 'flux-pro-1.1':
                 // Add dimensions from grid
                 const [width, height] = this.getSelectedDimension().split('x').map(Number);
                 params.width = width;
                 params.height = height;
                 break;
-                
+            
             case 'flux-pro':
                 // Add dimensions from grid
                 const [proWidth, proHeight] = this.getSelectedDimension().split('x').map(Number);
@@ -842,7 +862,7 @@ const GeneratorTab = {
                 // Make sure interval is included for Flux Pro
                 params.interval = parseFloat(this.elements.intervalSlider.value);
                 break;
-                
+            
             case 'flux-dev':
                 // Add dimensions from grid
                 const [devWidth, devHeight] = this.getSelectedDimension().split('x').map(Number);
@@ -852,6 +872,13 @@ const GeneratorTab = {
                 // Add Dev-specific parameters
                 params.steps = parseInt(this.elements.stepsSlider.value);
                 params.guidance = parseFloat(this.elements.guidanceSlider.value);
+                break;
+            
+            // Add cases for Kontext models
+            case 'flux-kontext-pro':
+            case 'flux-kontext-max':
+                // Kontext models use aspect ratio
+                params.aspect_ratio = this.elements.aspectRatioSelector.value;
                 break;
         }
         
