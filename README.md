@@ -41,6 +41,8 @@ Flux UI is a feature-rich interface for Black Forest Labs' Flux AI image generat
   - **Flux Pro**: Standard professional model
   - **Flux Dev**: Development model
   - **Flux Ultra**: High-quality model with aspect ratio control
+  - **Flux Kontext Pro**: High-quality model with aspect ratio control and image editing
+  - **Flux Kontext Max**: High-quality model with aspect ratio control and image editing
 
 - **Image Generation**: Create images using text prompts with fine-grained control over:
   - Dimensions or aspect ratios
