@@ -284,7 +284,7 @@ Flux UI includes a dark mode for comfortable use in low-light environments:
 
 ### API Integration
 
-Flux UI integrates with the Black Forest Labs API (documented at https://api.us1.bfl.ai) through a proxy server. The application handles:
+Flux UI integrates with the Black Forest Labs API (documented at https://api.us1.bfl.ai/scalar) through a proxy server. The application handles:
 
 - Authentication using API keys
 - Task submission to various endpoints
