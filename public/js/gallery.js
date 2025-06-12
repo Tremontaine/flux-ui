@@ -472,6 +472,7 @@ window.FluxGallery = {
                         <button class="download-btn px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition-colors">Download</button>
                         <button class="copy-params-btn px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">Copy Parameters</button>
                         <button class="copy-image-btn px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors">Copy to Clipboard</button>
+                        <button class="use-for-generator-btn px-3 py-1.5 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-400 transition-colors">Use for Generator</button>
                         <button class="use-for-inpaint-btn px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors">Use for Inpaint</button>
                         <button class="use-for-outpaint-btn px-3 py-1.5 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-600 transition-colors">Use for Outpaint</button>
                         <button class="use-for-control-btn px-3 py-1.5 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700 transition-colors">Use for Control</button>
@@ -494,6 +495,7 @@ window.FluxGallery = {
         modal.querySelector('.download-btn').addEventListener('click', () => this.downloadGalleryImage(item));
         modal.querySelector('.copy-params-btn').addEventListener('click', () => this.copyGalleryItemParams(item));
         modal.querySelector('.copy-image-btn').addEventListener('click', () => this.copyGalleryImageToClipboard(item));
+        modal.querySelector('.use-for-generator-btn').addEventListener('click', () => { this.useForGenerator(item); document.body.removeChild(modal); });
         modal.querySelector('.use-for-inpaint-btn').addEventListener('click', () => { this.useForInpaint(item); document.body.removeChild(modal); });
         modal.querySelector('.use-for-outpaint-btn').addEventListener('click', () => { this.useForOutpaint(item); document.body.removeChild(modal); });
         modal.querySelector('.use-for-control-btn').addEventListener('click', () => { this.useForControl(item); document.body.removeChild(modal); });
@@ -651,6 +653,24 @@ window.FluxGallery = {
             }
         } else {
             window.FluxUI.showNotification('Control tab is not ready yet', 'warning');
+        }
+    },
+
+    // Use image for Generator tab
+    useForGenerator: async function(item) {
+        if (window.GeneratorTab && typeof window.GeneratorTab.setImagePrompt === 'function') {
+             try {
+                const dataUri = await this.getBlobDataUri(item.imageDataBlob);
+                const genTabButton = document.querySelector('.tab-button[data-tab="generator-tab"]');
+                if (genTabButton) genTabButton.click();
+                window.GeneratorTab.setImagePrompt(dataUri, `Gallery Image ${item.id}`);
+                window.FluxUI.showNotification('Image sent to Generator tab!', 'success');
+            } catch (error) {
+                 console.error("Error sending to Generator:", error);
+                 window.FluxUI.showNotification('Failed to prepare image for Generator.', 'error');
+            }
+        } else {
+            window.FluxUI.showNotification('Generator tab is not ready yet', 'warning');
         }
     }
 };
