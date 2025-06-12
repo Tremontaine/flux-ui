@@ -685,6 +685,18 @@ const GeneratorTab = {
         };
         reader.readAsDataURL(file);
     },
+
+    // Set image prompt from gallery or other source
+    setImagePrompt: function(imageDataUrl, imageName = 'From Gallery') {
+        this.imagePromptData = imageDataUrl.split(',')[1];
+        this.elements.imagePromptName.textContent = imageName;
+
+        if (this.elements.modelSelector.value === 'flux-pro-1.1-ultra') {
+            this.elements.imagePromptStrengthContainer.classList.remove('hidden');
+        } else {
+            this.elements.imagePromptStrengthContainer.classList.add('hidden');
+        }
+    },
     
     // Generate an image
     generateImage: function() {
