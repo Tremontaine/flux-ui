@@ -72,7 +72,8 @@ Flux UI is a feature-rich interface for Black Forest Labs' Flux AI image generat
   - Preview images with their generation parameters
   - Download images in various formats
   - Copy images to clipboard
-  - Use gallery images as input for inpainting, outpainting, or control
+  - Use gallery images as input for generation, inpainting, outpainting, or control
+  - Pagination support
 
 - **Advanced Options**: Fine-tune the generation process with:
   - Prompt upsampling (automatic enhancement)
@@ -140,7 +141,7 @@ Flux UI can be easily deployed using Docker:
 
 1. Build and run using Docker Compose:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. Or build and run the Docker image directly:
@@ -158,10 +159,10 @@ Flux UI can be easily deployed using Docker:
 The Generator tab is the primary interface for creating images from text prompts.
 
 **Key Features:**
-- **Model Selection**: Choose between Flux Pro 1.1, Flux Pro, Flux Dev, and Flux Ultra.
+- **Model Selection**: Choose between Flux Pro 1.1, Flux Pro, Flux Dev, Flux Ultra, Flux Kontext Pro, and Flux Kontext Max.
 - **Finetune Support**: Apply a finetune model with adjustable strength.
 - **Dimension Control**: Select from various preset dimensions or aspect ratios (model dependent).
-- **Image Prompt**: Upload an image to influence the generation (useful for style or content transfer).
+- **Image Prompt**: Upload an image to influence the generation (useful for style or content transfer). Supports image editing with Flux Kontext Pro and Flux Kontext Max.
 - **Advanced Parameters**: Fine-tune the generation with sliders for steps, guidance, and safety.
 - **Seed Control**: Use specific seeds for reproducible results or randomize.
 
