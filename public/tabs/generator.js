@@ -948,7 +948,7 @@ const GeneratorTab = {
                 // Display the image using the proxied URL
                 this.displayImage(proxiedUrl);
 
-                // Automatically save to gallery
+                // Automatically save to gallery (live update without page refresh)
                 this.saveToGallery(proxiedUrl);
 
                 this.toggleLoading(false);
@@ -1147,48 +1147,48 @@ const GeneratorTab = {
             console.warn('Gallery module not available, cannot save image');
             return;
         }
-        
-        // First, fetch the image to convert it to a data URL
+
+        // Convert the proxied image URL to a Data URL so gallery can store as Blob
         fetch(imageUrl)
             .then(response => response.blob())
-            .then(blob => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            })
-            .then(dataUrl => {
-                // Get important parameters for metadata
+            .then(blob => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            }))
+            .then(async (dataUrl) => {
+                // Build comprehensive metadata to enable desktop/mobile modal features
                 const metadata = {
-                    // Use the actual model endpoint used from currentParams if available
                     model: this.currentParams.model || this.elements.modelSelector.value,
                     prompt: this.elements.promptInput.value,
-                    // Use the seed from currentParams (which should have the actual used seed)
                     seed: this.currentParams.seed,
                     width: this.currentParams.width,
                     height: this.currentParams.height,
-                    // Add finetune info if it was used
+                    output_format: this.currentParams.output_format || (this.elements.formatJpeg?.checked ? 'jpeg' : 'png'),
+                    ...(this.currentParams.aspect_ratio && { aspect_ratio: this.currentParams.aspect_ratio }),
+                    ...(this.currentParams.steps && { steps: this.currentParams.steps }),
+                    ...(this.currentParams.guidance && { guidance: this.currentParams.guidance }),
+                    ...(this.currentParams.interval && { interval: this.currentParams.interval }),
+                    ...(this.currentParams.raw && { raw: this.currentParams.raw }),
                     ...(this.currentParams.finetune_id && { finetune_id: this.currentParams.finetune_id }),
                     ...(this.currentParams.finetune_strength && { finetune_strength: this.currentParams.finetune_strength }),
-                    // Add other relevant parameters from currentParams
-                    ...this.currentParams // Spread the rest, potentially overwriting some if needed
+                    ...(this.currentParams.prompt_upsampling !== undefined && { prompt_upsampling: this.currentParams.prompt_upsampling })
                 };
-                // Clean up metadata object - remove redundant 'model' if it's already there from spread
-                if (metadata.model === this.currentParams.model) {
-                   // It's already correctly set
+
+                try {
+                    await window.FluxGallery.addImage(dataUrl, metadata);
+                    console.log('Image saved to gallery (live).');
+                } catch (e) {
+                    console.error('Gallery addImage error:', e);
+                    window.FluxUI.showNotification('Failed to save image to gallery.', 'error');
                 }
-                
-                // Add to gallery
-                window.FluxGallery.addImage(dataUrl, metadata);
-                console.log('Image saved to gallery');
             })
             .catch(error => {
                 console.error('Error saving to gallery:', error);
                 window.FluxUI.showNotification('Failed to save image to gallery: ' + error.message, 'error');
-        });
-},
+            });
+    },
 
 // Handle finetune selection change
 handleFinetuneSelection: function() {

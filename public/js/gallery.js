@@ -637,7 +637,7 @@ window.FluxGallery = {
         });
     },
 
-    // Render simplified inline gallery for mobile (no hover overlays, no modal)
+    // Render simplified inline gallery for mobile (tap to open modal with full desktop actions)
     renderMobileInlineGallery: function() {
         const inline = document.getElementById('mobile-inline-gallery');
         const grid = document.getElementById('mobile-gallery-grid');
@@ -671,6 +671,12 @@ window.FluxGallery = {
                 </div>
             `;
             grid.appendChild(wrap);
+
+            // Tap anywhere on the tile (besides the small buttons) opens the full modal to access imports, metadata, etc.
+            wrap.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                this.handleGalleryItemClick(item); // reuse desktop modal
+            });
 
             wrap.querySelector('.mobile-download').addEventListener('click', (e) => {
                 e.stopPropagation();
