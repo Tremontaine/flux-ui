@@ -17,6 +17,13 @@ window.FluxGallery = {
     // Current gallery items (loaded from DB)
     items: [], // Will hold { id, objectURL, metadata }
 
+    // Pagination state
+    page: 1,
+    pageSize: 24, // default visible thumbnails per page
+    get totalPages() {
+        return Math.max(1, Math.ceil(this.items.length / this.pageSize));
+    },
+
     // Initialize the gallery
     init: async function() {
         console.log('Initializing Gallery with IndexedDB');
@@ -25,6 +32,9 @@ window.FluxGallery = {
             await this.loadFromDB(); // Load images from IndexedDB
             this.setupGalleryUI(); // Set up gallery UI
             console.log(`Gallery loaded with ${this.items.length} images`);
+            // Ensure page within bounds after load
+            this.page = 1;
+            this.updateGalleryUI();
         } catch (error) {
             console.error('Failed to initialize gallery:', error);
             // Fallback or error display? For now, just log.
@@ -148,6 +158,8 @@ window.FluxGallery = {
                     // Enforce maxImages limit AFTER adding
                     await this.enforceMaxImagesLimit();
 
+                    // Jump to first page to surface most recent on add
+                    this.page = 1;
                     this.updateGalleryUI(); // Update UI
                     window.FluxUI.showNotification('Image saved to gallery!', 'success');
                     resolve(item.id);
@@ -244,6 +256,10 @@ window.FluxGallery = {
                     if (removedItem.objectURL) {
                         URL.revokeObjectURL(removedItem.objectURL);
                     }
+                    // After delete, ensure pagination still valid
+                    if ((this.page - 1) * this.pageSize >= this.items.length) {
+                        this.page = Math.max(1, this.totalPages);
+                    }
                     this.updateGalleryUI(); // Update UI
                     window.FluxUI.showNotification('Image deleted.', 'success');
                     resolve(true);
@@ -326,10 +342,105 @@ window.FluxGallery = {
         const galleryContent = document.getElementById('gallery-content');
         const clearGalleryBtn = document.getElementById('clear-gallery-btn');
 
+        // Inject pagination footer controls (non-desktop intrusive)
+        const footer = document.querySelector('.gallery-footer');
+        if (footer && !footer.querySelector('.gallery-pagination')) {
+            footer.insertAdjacentHTML('beforeend', `
+                <div class="gallery-pagination" style="display:flex;align-items:center;gap:8px;margin-top:8px;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <button class="gallery-prev btn" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;">Prev</button>
+                        <span class="gallery-page-label" style="font-size:12px;color:#6b7280;">Page <span class="gp-current">1</span> / <span class="gp-total">1</span></span>
+                        <button class="gallery-next btn" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;">Next</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <label for="gallery-page-size" style="font-size:12px;color:#6b7280;">Per page</label>
+                        <select id="gallery-page-size" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;">
+                            <option value="12">12</option>
+                            <option value="24" selected>24</option>
+                            <option value="48">48</option>
+                            <option value="96">96</option>
+                        </select>
+                    </div>
+                </div>
+            `);
+        }
+
         if (!galleryContainer || !galleryToggle || !galleryContent) {
             console.error('Gallery UI elements not found');
             return;
         }
+
+        // Inline Mobile Gallery: create a container that will be displayed under the active tab on small screens
+        if (!document.getElementById('mobile-inline-gallery')) {
+            const inline = document.createElement('section');
+            inline.id = 'mobile-inline-gallery';
+            inline.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-semibold text-gray-700">Gallery</h2>
+                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                        <span>Page <span class="gp-current">1</span>/<span class="gp-total">1</span></span>
+                    </div>
+                </div>
+                <div id="mobile-gallery-grid" class="grid grid-cols-3 gap-2 mt-2"></div>
+                <div class="flex items-center justify-between mt-2">
+                    <div class="flex items-center gap-2">
+                        <button class="mobile-gallery-prev px-2 py-1 border border-gray-300 rounded">Prev</button>
+                        <button class="mobile-gallery-next px-2 py-1 border border-gray-300 rounded">Next</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="mobile-gallery-page-size" class="text-xs text-gray-500">Per page</label>
+                        <select id="mobile-gallery-page-size" class="px-2 py-1 border border-gray-300 rounded text-sm">
+                            <option value="9" selected>9</option>
+                            <option value="12">12</option>
+                            <option value="24">24</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            // Hide by default in desktop; shown only in mobile CSS via utility classes would be ideal, but we toggle in JS based on width and active tab.
+            inline.style.display = 'none';
+            document.body.appendChild(inline);
+        }
+
+        // Handle tab switches to place inline gallery under active .tab-content on mobile
+        const placeInlineUnderActiveTab = () => {
+            const inline = document.getElementById('mobile-inline-gallery');
+            if (!inline) return;
+
+            const isMobile = window.matchMedia('(max-width: 640px)').matches;
+            if (!isMobile) {
+                inline.style.display = 'none';
+                return;
+            }
+
+            // Hide the right sidebar on mobile entirely
+            if (galleryContainer) galleryContainer.style.display = 'none';
+
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                inline.style.display = '';
+                if (inline.parentElement !== activeTab) {
+                    activeTab.appendChild(inline);
+                }
+            } else {
+                inline.style.display = 'none';
+            }
+            // render mobile gallery items
+            this.renderMobileInlineGallery();
+        };
+
+        // Observe tab button clicks
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // slight delay to allow active class switch by existing code
+                setTimeout(placeInlineUnderActiveTab, 0);
+            });
+        });
+
+        // React on resize
+        window.addEventListener('resize', placeInlineUnderActiveTab);
+        // Initial placement
+        setTimeout(placeInlineUnderActiveTab, 0);
 
         // Toggle gallery visibility
         galleryToggle.addEventListener('click', () => {
@@ -339,6 +450,77 @@ window.FluxGallery = {
                 '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>' :
                 '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>';
         });
+
+        // Pagination events
+        const prevBtn = document.querySelector('.gallery-prev');
+        const nextBtn = document.querySelector('.gallery-next');
+        const pageSizeSelect = document.getElementById('gallery-page-size');
+
+        // Mobile inline pagination events
+        const mPrev = () => { if (this.page > 1) { this.page--; this.updateGalleryUI(); this.renderMobileInlineGallery(); } };
+        const mNext = () => { if (this.page < this.totalPages) { this.page++; this.updateGalleryUI(); this.renderMobileInlineGallery(); } };
+        const mSize = (val) => {
+            const firstIndex = (this.page - 1) * this.pageSize;
+            this.pageSize = val;
+            this.page = Math.floor(firstIndex / this.pageSize) + 1;
+            if (this.page > this.totalPages) this.page = this.totalPages;
+            if (this.page < 1) this.page = 1;
+            this.updateGalleryUI();
+            this.renderMobileInlineGallery();
+        };
+
+        const mobilePrevBtn = () => document.querySelector('#mobile-inline-gallery .mobile-gallery-prev');
+        const mobileNextBtn = () => document.querySelector('#mobile-inline-gallery .mobile-gallery-next');
+        const mobileSizeSel = () => document.getElementById('mobile-gallery-page-size');
+
+        setTimeout(() => {
+            const mp = mobilePrevBtn();
+            const mn = mobileNextBtn();
+            const ms = mobileSizeSel();
+            if (mp && !mp._bound) { mp.addEventListener('click', mPrev); mp._bound = true; }
+            if (mn && !mn._bound) { mn.addEventListener('click', mNext); mn._bound = true; }
+            if (ms && !ms._bound) {
+                ms.addEventListener('change', (e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v) && v > 0) mSize(v);
+                });
+                ms._bound = true;
+            }
+        }, 0);
+        if (prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (this.page > 1) {
+                    this.page -= 1;
+                    this.updateGalleryUI();
+                }
+            });
+            nextBtn.addEventListener('click', () => {
+                if (this.page < this.totalPages) {
+                    this.page += 1;
+                    this.updateGalleryUI();
+                }
+            });
+        }
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', (e) => {
+                const newSize = parseInt(e.target.value, 10);
+                if (!isNaN(newSize) && newSize > 0) {
+                    // Recompute page to keep first item visible when possible
+                    const firstIndex = (this.page - 1) * this.pageSize;
+                    this.pageSize = newSize;
+                    this.page = Math.floor(firstIndex / this.pageSize) + 1;
+                    if (this.page > this.totalPages) this.page = this.totalPages;
+                    if (this.page < 1) this.page = 1;
+                    this.updateGalleryUI();
+                }
+            });
+        }
+
+        // Mobile: allow dragging the bottom sheet handle to open/close
+        // Minimal implementation using click toggle; advanced drag can be added later.
+        if (galleryToggle) {
+            galleryToggle.setAttribute('aria-label', 'Toggle Gallery');
+        }
 
         // Clear gallery button
         if (clearGalleryBtn) {
@@ -366,20 +548,39 @@ window.FluxGallery = {
 
         // Clear current content
         galleryContent.innerHTML = '';
+        // Clamp page bounds
+        if (this.page < 1) this.page = 1;
+        const totalPages = this.totalPages;
+        if (this.page > totalPages) this.page = totalPages;
 
         // Update counter if it exists
         if (galleryCounter) {
             galleryCounter.textContent = this.items.length;
         }
+        // Update pagination label
+        const curEl = document.querySelector('.gp-current');
+        const totEl = document.querySelector('.gp-total');
+        if (curEl) curEl.textContent = String(this.page);
+        if (totEl) totEl.textContent = String(totalPages);
 
         // Show empty state if no items
         if (this.items.length === 0) {
             // Optional: Add a message like galleryContent.innerHTML = '<p class="p-4 text-center text-gray-500">Gallery is empty.</p>';
+            // Also clear mobile grid if present
+            const mg = document.getElementById('mobile-gallery-grid');
+            if (mg) mg.innerHTML = '';
+            const curEl = document.querySelector('.gp-current');
+            const totEl = document.querySelector('.gp-total');
+            if (curEl) curEl.textContent = '1';
+            if (totEl) totEl.textContent = '1';
             return;
         }
 
         // Create gallery items (using item.objectURL)
-        this.items.forEach((item) => {
+        const start = (this.page - 1) * this.pageSize;
+        const end = start + this.pageSize;
+        const pageItems = this.items.slice(start, end);
+        pageItems.forEach((item) => {
             const itemElement = document.createElement('div');
             itemElement.className = 'gallery-item group relative aspect-square bg-gray-800 overflow-hidden rounded-md shadow-md'; // Added group and styling
             itemElement.innerHTML = `
@@ -432,6 +633,57 @@ window.FluxGallery = {
             itemElement.querySelector('.download-btn').addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent modal opening
                 this.downloadGalleryImage(item);
+            });
+        });
+    },
+
+    // Render simplified inline gallery for mobile (no hover overlays, no modal)
+    renderMobileInlineGallery: function() {
+        const inline = document.getElementById('mobile-inline-gallery');
+        const grid = document.getElementById('mobile-gallery-grid');
+        if (!inline || !grid) return;
+
+        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+        if (!isMobile) {
+            return;
+        }
+
+        // Update page label inside inline header
+        const curEl = inline.querySelector('.gp-current');
+        const totEl = inline.querySelector('.gp-total');
+        const totalPages = this.totalPages;
+        if (curEl) curEl.textContent = String(this.page);
+        if (totEl) totEl.textContent = String(totalPages);
+
+        // Rebuild grid for current page
+        grid.innerHTML = '';
+        const start = (this.page - 1) * this.pageSize;
+        const end = start + this.pageSize;
+        const pageItems = this.items.slice(start, end);
+        pageItems.forEach((item) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'relative overflow-hidden rounded border border-gray-200';
+            wrap.innerHTML = `
+                <img src="${item.objectURL}" alt="Generated image" class="w-full h-full object-cover aspect-square">
+                <div class="absolute top-1 right-1 flex gap-1">
+                    <button class="mobile-download p-1 bg-indigo-600 text-white rounded text-xs" title="Download">⬇</button>
+                    <button class="mobile-delete p-1 bg-red-600 text-white rounded text-xs" title="Delete">✕</button>
+                </div>
+            `;
+            grid.appendChild(wrap);
+
+            wrap.querySelector('.mobile-download').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.downloadGalleryImage(item);
+            });
+            wrap.querySelector('.mobile-delete').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await this.removeImage(item.id);
+                    this.renderMobileInlineGallery();
+                } catch (err) {
+                    window.FluxUI.showNotification('Error deleting image.', 'error');
+                }
             });
         });
     },

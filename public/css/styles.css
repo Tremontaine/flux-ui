@@ -4,6 +4,48 @@
     --primary-light: #e0e7ff;
 }
 
+/* Mobile layout fixes */
+@media (max-width: 640px) {
+    /* Prevent horizontal overflow caused by long flex rows */
+    html, body {
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Header container wraps and avoids pushing layout horizontally */
+    header .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Brand + theme toggle row: allow shrink */
+    header .container > .flex.items-center.space-x-4 {
+        flex: 1 1 auto;
+        min-width: 0; /* allow text to truncate instead of overflow */
+    }
+
+    /* API key controls layout: stack on small screens */
+    #api-key-container {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+
+    #api-key-input {
+        flex: 1 1 160px; /* grow but has a sane min width */
+        min-width: 0;    /* allow shrinking within container */
+    }
+
+    #save-api-key,
+    #clear-api-key {
+        flex: 0 0 auto;  /* keep intrinsic size but wrap to next line if needed */
+        white-space: nowrap;
+    }
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f9fafb;
